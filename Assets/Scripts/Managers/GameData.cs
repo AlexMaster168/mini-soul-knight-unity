@@ -166,6 +166,34 @@ public static class GameData
         // Tank
         { "Tank", new EnemyData("Tank", 200, 15, 1.5f, 1.5f, 2f, scale: 1.3f) },
         { "Guardian", new EnemyData("Guardian", 180, 20, 1.8f, 1.5f, 1.8f, true, 6f, 2f, 1, scale: 1.2f) },
+
+        // NEW: Fast aggressive
+        { "Imp", new EnemyData("Imp", 25, 14, 5.5f, 1.2f, 0.7f, true, 8f, 1.2f, 2, scale: 0.7f) },
+        { "Werewolf", new EnemyData("Werewolf", 80, 25, 4.5f, 1.5f, 1f, scale: 1.1f) },
+        { "Berserker", new EnemyData("Berserker", 60, 35, 3.5f, 1.3f, 0.8f, scale: 1.0f) },
+
+        // NEW: Magic users
+        { "Lich", new EnemyData("Lich", 45, 28, 2f, 1f, 2.5f, true, 14f, 1.8f, 4, false, 0f, true, 1.0f) },
+        { "Warlock", new EnemyData("Warlock", 40, 20, 2.5f, 1f, 2f, true, 12f, 2f, 3, false, 0f, false, 0.9f) },
+        { "StormMage", new EnemyData("StormMage", 35, 25, 3f, 1f, 1.8f, true, 10f, 1.5f, 5, false, 0f, false, 0.85f) },
+
+        // NEW: Stealth/Special
+        { "Wraith", new EnemyData("Wraith", 30, 18, 4f, 1f, 1.2f, true, 9f, 1.5f, 1, false, 0f, false, 0.8f) },
+        { "Assassin", new EnemyData("Assassin", 35, 40, 6f, 1.3f, 0.6f, scale: 0.85f) },
+        { "Shadow", new EnemyData("Shadow", 40, 22, 3.5f, 1.2f, 1f, true, 7f, 1.8f, 2, false, 0f, false, 0.9f) },
+
+        // NEW: Regenerating/Tanky
+        { "Troll", new EnemyData("Troll", 180, 12, 2f, 1.5f, 2f, scale: 1.35f) },
+        { "Abomination", new EnemyData("Abomination", 220, 18, 1.5f, 1.8f, 2.2f, scale: 1.4f) },
+        { "CrystalGolem", new EnemyData("CrystalGolem", 300, 10, 1f, 2f, 3f, scale: 1.5f) },
+
+        // NEW: Flying
+        { "Harpy", new EnemyData("Harpy", 45, 16, 4.5f, 1f, 1.2f, true, 10f, 1.4f, 2, false, 0f, false, 0.85f) },
+        { "Nightmare", new EnemyData("Nightmare", 55, 20, 3.8f, 1.2f, 1.5f, true, 11f, 1.6f, 3, false, 0f, false, 0.95f) },
+
+        // NEW: Exploding variants
+        { "FireElemental", new EnemyData("FireElemental", 35, 25, 3.5f, 1.5f, 1f, true, 8f, 1.2f, 3, true, 2.5f, false, 0.85f) },
+        { "LivingBomb", new EnemyData("LivingBomb", 15, 50, 5f, 1f, 0.5f, false, 0f, 0f, 0, true, 4f, false, 0.7f) },
     };
 
     public static Dictionary<string, EnemyData> Bosses = new Dictionary<string, EnemyData>

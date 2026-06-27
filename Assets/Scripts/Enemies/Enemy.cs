@@ -118,12 +118,15 @@ public class Enemy : MonoBehaviour
             case "FireMage":
             case "NecroMage":
             case "Guardian":
-                if (dist < 3f)
-                    direction = -direction;
-                else if (dist > 7f)
+                if (dist < 2.5f)
+                {
+                    Vector2 perpendicular = Vector2.Perpendicular(toPlayer.normalized);
+                    direction = perpendicular * Mathf.Sin(Time.time * 3f);
+                }
+                else if (dist > 8f)
                     direction = toPlayer.normalized;
                 else
-                    direction = Vector2.Perpendicular(direction) * Mathf.Sin(Time.time * 4f);
+                    direction = Vector2.Perpendicular(toPlayer.normalized) * Mathf.Sin(Time.time * 4f);
                 break;
             case "Speedster":
             case "Wolf":
@@ -172,12 +175,38 @@ public class Enemy : MonoBehaviour
 
         if (roomManager != null && roomManager.roomData != null)
         {
-            float hw = 6.5f;
-            float hh = 4.5f;
+            float hw = 6f;
+            float hh = 4f;
             float cx = roomManager.roomData.worldCenter.x;
             float cy = roomManager.roomData.worldCenter.y;
-            newPos.x = Mathf.Clamp(newPos.x, cx - hw, cx + hw);
-            newPos.y = Mathf.Clamp(newPos.y, cy - hh, cy + hh);
+
+            float wallMargin = 0.5f;
+            float leftWall = cx - hw + wallMargin;
+            float rightWall = cx + hw - wallMargin;
+            float bottomWall = cy - hh + wallMargin;
+            float topWall = cy + hh - wallMargin;
+
+            if (newPos.x < leftWall)
+            {
+                newPos.x = leftWall;
+                direction.x = Mathf.Abs(direction.x) * 0.5f;
+            }
+            else if (newPos.x > rightWall)
+            {
+                newPos.x = rightWall;
+                direction.x = -Mathf.Abs(direction.x) * 0.5f;
+            }
+
+            if (newPos.y < bottomWall)
+            {
+                newPos.y = bottomWall;
+                direction.y = Mathf.Abs(direction.y) * 0.5f;
+            }
+            else if (newPos.y > topWall)
+            {
+                newPos.y = topWall;
+                direction.y = -Mathf.Abs(direction.y) * 0.5f;
+            }
         }
 
         transform.position = newPos;
@@ -199,7 +228,9 @@ public class Enemy : MonoBehaviour
                     switch (enemyType)
                     {
                         case "Bomber":
+                        case "LivingBomb":
                             pc.TakeDamage(damage);
+                            SpawnExplosion();
                             currentHealth = 0;
                             Die();
                             break;
@@ -218,9 +249,39 @@ public class Enemy : MonoBehaviour
                             break;
                         case "Wolf":
                         case "Snake":
+                        case "Werewolf":
                             pc.TakeDamage(damage);
                             if (Random.Range(0f, 1f) < 0.4f)
                                 pc.TakeDamage(damage);
+                            break;
+                        case "Imp":
+                            pc.TakeDamage(damage);
+                            Vector2 impDash = ((Vector2)player.position - (Vector2)transform.position).normalized * 4f;
+                            transform.position += (Vector3)impDash;
+                            break;
+                        case "Berserker":
+                            pc.TakeDamage(damage * 2);
+                            break;
+                        case "Assassin":
+                            pc.TakeDamage(damage * 3);
+                            Vector2 dashDir = ((Vector2)player.position - (Vector2)transform.position).normalized * 5f;
+                            transform.position += (Vector3)dashDir;
+                            break;
+                        case "Troll":
+                            pc.TakeDamage(damage);
+                            currentHealth = Mathf.Min(currentHealth + 10, maxHealth);
+                            break;
+                        case "Abomination":
+                            pc.TakeDamage(damage);
+                            if (Random.Range(0f, 1f) < 0.5f)
+                                pc.TakeDamage(damage);
+                            break;
+                        case "CrystalGolem":
+                            pc.TakeDamage(damage);
+                            break;
+                        case "FireElemental":
+                            pc.TakeDamage(damage);
+                            SpawnFireTrail();
                             break;
                         case "Spider":
                             pc.TakeDamage(damage);
@@ -242,6 +303,7 @@ public class Enemy : MonoBehaviour
         switch (enemyType)
         {
             case "FireMage":
+            case "FireElemental":
                 for (int i = 0; i < 3; i++)
                 {
                     float angle = Mathf.Atan2(dir.y, dir.x) * Mathf.Rad2Deg + (i - 1) * 20f;
@@ -255,12 +317,50 @@ public class Enemy : MonoBehaviour
                 GameSetup.Instance.SpawnEnemyBullet(transform.position, Quaternion.Euler(0, 0, 15f) * iceDir, damage / 3);
                 GameSetup.Instance.SpawnEnemyBullet(transform.position, Quaternion.Euler(0, 0, -15f) * iceDir, damage / 3);
                 break;
+            case "StormMage":
+                for (int i = 0; i < 7; i++)
+                {
+                    float a = (360f / 7) * i * Mathf.Deg2Rad;
+                    Vector2 stormDir = new Vector2(Mathf.Cos(a), Mathf.Sin(a));
+                    GameSetup.Instance.SpawnEnemyBullet(transform.position, stormDir, damage / 4);
+                }
+                break;
             case "NecroMage":
+            case "Lich":
                 for (int i = 0; i < 5; i++)
                 {
                     float a = (360f / 5) * i * Mathf.Deg2Rad;
                     Vector2 ringDir = new Vector2(Mathf.Cos(a), Mathf.Sin(a));
                     GameSetup.Instance.SpawnEnemyBullet(transform.position, ringDir, damage / 3);
+                }
+                break;
+            case "Warlock":
+                for (int i = 0; i < 3; i++)
+                {
+                    float spread = (i - 1) * 0.3f;
+                    Vector2 warlockDir = Quaternion.Euler(0, 0, spread * Mathf.Rad2Deg) * dir;
+                    GameSetup.Instance.SpawnEnemyBullet(transform.position, warlockDir, damage / 2);
+                }
+                break;
+            case "Wraith":
+            case "Shadow":
+                Vector2 shadowDir = dir;
+                GameSetup.Instance.SpawnEnemyBullet(transform.position, shadowDir, damage);
+                break;
+            case "Nightmare":
+                for (int i = 0; i < 4; i++)
+                {
+                    float a = (360f / 4) * i * Mathf.Deg2Rad + Time.time;
+                    Vector2 nightmareDir = new Vector2(Mathf.Cos(a), Mathf.Sin(a));
+                    GameSetup.Instance.SpawnEnemyBullet(transform.position, nightmareDir, damage / 3);
+                }
+                break;
+            case "Harpy":
+                for (int i = 0; i < 2; i++)
+                {
+                    float spread = (i == 0 ? -0.2f : 0.2f);
+                    Vector2 harpyDir = Quaternion.Euler(0, 0, spread * Mathf.Rad2Deg) * dir;
+                    GameSetup.Instance.SpawnEnemyBullet(transform.position, harpyDir, damage / 2);
                 }
                 break;
             case "Archer":
@@ -310,6 +410,41 @@ public class Enemy : MonoBehaviour
             spriteRenderer.color = originalColor;
     }
 
+    void SpawnExplosion()
+    {
+        if (EffectsManager.Instance != null)
+            EffectsManager.Instance.SpawnDeathEffect(transform.position);
+
+        Collider2D[] hits = Physics2D.OverlapCircleAll(transform.position, explosionRadius);
+        foreach (Collider2D hit in hits)
+        {
+            if (hit.CompareTag("Player"))
+            {
+                PlayerController pc = hit.GetComponent<PlayerController>();
+                if (pc != null)
+                    pc.TakeDamage(damage);
+            }
+        }
+    }
+
+    void SpawnFireTrail()
+    {
+        for (int i = 0; i < 5; i++)
+        {
+            GameObject fire = new GameObject("FireTrail");
+            fire.transform.position = (Vector3)(Vector2)transform.position + (Vector3)(Random.insideUnitCircle * 0.5f);
+            SpriteRenderer sr = fire.AddComponent<SpriteRenderer>();
+            sr.sprite = SpriteGenerator.CreateCircle(8, new Color(1f, 0.4f, 0.05f, 0.8f));
+            sr.sortingOrder = 15;
+            fire.transform.localScale = Vector3.one * Random.Range(0.1f, 0.2f);
+
+            ParticleMover pm = fire.AddComponent<ParticleMover>();
+            pm.velocity = Random.insideUnitCircle * 2f;
+            pm.lifetime = Random.Range(0.5f, 1f);
+            pm.shrink = true;
+        }
+    }
+
     void Die()
     {
         if (EffectsManager.Instance != null)
@@ -318,6 +453,8 @@ public class Enemy : MonoBehaviour
             AudioManager.Instance.PlayDeathSound();
         if (ScoreManager.Instance != null)
             ScoreManager.Instance.AddScore(100);
+
+        bool isBoss = GetComponent<Boss>() != null;
 
         if (explodeOnDeath)
             Explode();
@@ -329,6 +466,19 @@ public class Enemy : MonoBehaviour
 
         if (roomManager != null)
             roomManager.EnemyDefeated();
+
+        if (isBoss)
+        {
+            if (AudioManager.Instance != null)
+                AudioManager.Instance.PlayDeathSound();
+            if (ProceduralMusic.Instance != null)
+            {
+                ProceduralMusic.Instance.PlaySFX("bossDeath");
+                ProceduralMusic.Instance.StartVictoryMusic();
+            }
+            if (GameOverUI.Instance != null)
+                GameOverUI.Instance.ShowWin();
+        }
 
         Destroy(gameObject);
     }
@@ -349,6 +499,8 @@ public class Enemy : MonoBehaviour
             SpawnDrop("energy");
         else if (roll < 0.5f)
             SpawnDrop("weapon");
+
+        SpawnGold();
     }
 
     void SpawnDrop(string type)
@@ -363,19 +515,61 @@ public class Enemy : MonoBehaviour
         switch (type)
         {
             case "weapon":
-                sr.sprite = SpriteGenerator.CreateSquare(16, new Color(0.9f, 0.8f, 0.1f));
+                sr.sprite = SpriteGenerator.CreateDropWeapon(16);
                 obj.AddComponent<WeaponPickup>();
                 break;
             case "health":
-                sr.sprite = SpriteGenerator.CreateCircle(16, new Color(0.2f, 0.9f, 0.2f));
+                sr.sprite = SpriteGenerator.CreateDropHealth(16);
                 PowerUp pu = obj.AddComponent<PowerUp>();
                 pu.type = PowerUp.PowerUpType.HealthRestore;
                 break;
             case "energy":
-                sr.sprite = SpriteGenerator.CreateCircle(16, new Color(0.2f, 0.5f, 1f));
+                sr.sprite = SpriteGenerator.CreateDropEnergy(16);
                 PowerUp pe = obj.AddComponent<PowerUp>();
                 pe.type = PowerUp.PowerUpType.EnergyRestore;
                 break;
+        }
+    }
+
+    void SpawnGold()
+    {
+        int goldTotal = 10;
+        int coinCount = 20;
+
+        if (enemyType == "Tank" || enemyType == "DarkKnight" || enemyType == "Orc" || enemyType == "Golem")
+        {
+            goldTotal = 30;
+            coinCount = 30;
+        }
+        else if (enemyType == "Bomber" || enemyType == "Spawner" || enemyType == "Guardian")
+        {
+            goldTotal = 25;
+            coinCount = 25;
+        }
+        else if (enemyType == "Speedster" || enemyType == "Bat" || enemyType == "Spider")
+        {
+            goldTotal = 8;
+            coinCount = 15;
+        }
+
+        if (enemyType == "CrownedBoar" || enemyType == "Dragon" || enemyType == "Necromancer")
+        {
+            goldTotal = 500;
+            coinCount = 80;
+        }
+
+        for (int i = 0; i < coinCount; i++)
+        {
+            Vector2 pos = (Vector2)transform.position + Random.insideUnitCircle * 2f;
+            GameObject obj = new GameObject("GoldCoin");
+            obj.transform.position = pos;
+            SpriteRenderer sr = obj.AddComponent<SpriteRenderer>();
+            sr.sprite = SpriteGenerator.CreateCoin(16);
+            sr.sortingOrder = 8;
+            obj.transform.localScale = Vector3.one * 0.8f;
+            obj.AddComponent<BoxCollider2D>().isTrigger = true;
+            GoldPickup gp = obj.AddComponent<GoldPickup>();
+            gp.goldValue = Mathf.Max(1, goldTotal / coinCount);
         }
     }
 

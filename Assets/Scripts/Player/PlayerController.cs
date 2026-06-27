@@ -21,9 +21,9 @@ public class PlayerController : MonoBehaviour
 
     [Header("Attack")]
     public int attackDamage = 25;
-    public float attackCooldown = 0.3f;
+    public float attackCooldown = 0.12f;
     public int projectilesPerShot = 1;
-    public int energyCost = 5;
+    public int energyCost = 3;
 
     [Header("Armor")]
     public int armor = 0;
@@ -88,21 +88,37 @@ public class PlayerController : MonoBehaviour
             return;
         }
 
-        movement.x = Input.GetAxisRaw("Horizontal");
-        movement.y = Input.GetAxisRaw("Vertical");
-        movement = movement.normalized;
+        bool shopOpen = ShopUI.Instance != null && ShopUI.Instance.IsOpen();
+        bool statsOpen = UIManager.Instance != null && UIManager.Instance.StatsVisible();
 
-        if (Input.GetKeyDown(KeyCode.Space) && dashCooldownTimer <= 0)
-            StartDash();
+        if (!shopOpen && !statsOpen)
+        {
+            movement.x = Input.GetAxisRaw("Horizontal");
+            movement.y = Input.GetAxisRaw("Vertical");
+            movement = movement.normalized;
 
-        if (Input.GetMouseButton(0) && attackTimer <= 0)
-            Shoot();
+            if (Input.GetKeyDown(KeyCode.Space) && dashCooldownTimer <= 0)
+                StartDash();
+
+            if (Input.GetMouseButton(0) && attackTimer <= 0)
+                Shoot();
+        }
+        else
+        {
+            movement = Vector2.zero;
+        }
 
         if (Input.GetKeyDown(KeyCode.Q))
         {
             if (Inventory.Instance != null)
                 Inventory.Instance.NextWeapon();
         }
+
+        if (Input.GetKeyDown(KeyCode.Alpha1)) SwitchWeapon(0);
+        if (Input.GetKeyDown(KeyCode.Alpha2)) SwitchWeapon(1);
+        if (Input.GetKeyDown(KeyCode.Alpha3)) SwitchWeapon(2);
+        if (Input.GetKeyDown(KeyCode.Alpha4)) SwitchWeapon(3);
+        if (Input.GetKeyDown(KeyCode.Alpha5)) SwitchWeapon(4);
 
         if (Input.GetKeyDown(KeyCode.Tab))
         {
@@ -177,6 +193,9 @@ public class PlayerController : MonoBehaviour
         if (AudioManager.Instance != null)
             AudioManager.Instance.PlayShootSound();
 
+        if (PostProcessEffect.Instance != null)
+            PostProcessEffect.Instance.TriggerScreenShake(0.03f, 0.05f);
+
         attackTimer = attackCooldown;
         currentEnergy -= energyCost;
 
@@ -184,6 +203,13 @@ public class PlayerController : MonoBehaviour
         mousePos3D.z = Mathf.Abs(Camera.main.transform.position.z);
         Vector2 mousePos = Camera.main.ScreenToWorldPoint(mousePos3D);
         Vector2 shootDir = (mousePos - (Vector2)transform.position).normalized;
+
+        bool shootBack = Input.GetMouseButton(1);
+        if (shootBack)
+            shootDir = -shootDir;
+
+        if (WeaponAnimator.Instance != null)
+            WeaponAnimator.Instance.PlayShootEffect(shootDir);
 
         for (int i = 0; i < projectilesPerShot; i++)
         {
@@ -193,7 +219,7 @@ public class PlayerController : MonoBehaviour
         }
 
         Vector2 nearestEnemyDir = FindNearestEnemyDir();
-        if (nearestEnemyDir != Vector2.zero)
+        if (nearestEnemyDir != Vector2.zero && !shootBack)
         {
             for (int i = 0; i < Mathf.CeilToInt(projectilesPerShot * 0.5f); i++)
             {
@@ -255,6 +281,12 @@ public class PlayerController : MonoBehaviour
         if (AudioManager.Instance != null)
             AudioManager.Instance.PlayHitSound();
 
+        if (PostProcessEffect.Instance != null)
+        {
+            PostProcessEffect.Instance.TriggerHitFlash();
+            PostProcessEffect.Instance.TriggerScreenShake(0.15f, 0.15f);
+        }
+
         if (currentHealth <= 0)
             Die();
     }
@@ -283,5 +315,14 @@ public class PlayerController : MonoBehaviour
         attackCooldown = data.fireRate;
         projectilesPerShot = data.projectiles;
         energyCost = data.energyCost;
+
+        if (WeaponAnimator.Instance != null)
+            WeaponAnimator.Instance.SetWeapon(weaponName);
+    }
+
+    void SwitchWeapon(int index)
+    {
+        if (Inventory.Instance != null)
+            Inventory.Instance.EquipWeapon(index);
     }
 }

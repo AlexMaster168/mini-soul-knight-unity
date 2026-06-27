@@ -40,6 +40,14 @@ public class SceneSetup : MonoBehaviour
         player.AddComponent<Inventory>();
         player.transform.localScale = Vector3.one * 1.2f;
 
+        GameObject shadow = new GameObject("Shadow");
+        shadow.transform.SetParent(player.transform);
+        shadow.transform.localPosition = new Vector3(0, -0.5f, 0);
+        SpriteRenderer shadowSr = shadow.AddComponent<SpriteRenderer>();
+        shadowSr.sprite = SpriteGenerator.CreateCircle(16, new Color(0, 0, 0, 0.3f));
+        shadowSr.sortingOrder = -1;
+        shadow.transform.localScale = new Vector3(1.2f, 0.4f, 1f);
+
         GameObject weaponHolder = new GameObject("WeaponHolder");
         weaponHolder.transform.SetParent(player.transform);
         weaponHolder.transform.localPosition = new Vector3(0.4f, 0.1f, 0);
@@ -59,6 +67,12 @@ public class SceneSetup : MonoBehaviour
         CreateManager("ScoreManager", typeof(ScoreManager));
         CreateManager("GameOverUI", typeof(GameOverUI));
         CreateManager("ProceduralMusic", typeof(ProceduralMusic));
+        CreateManager("ShopUI", typeof(ShopUI));
+        CreateManager("PostProcessEffect", typeof(PostProcessEffect));
+        CreateManager("LightingSystem", typeof(LightingSystem));
+        CreateManager("AmbientParticles", typeof(AmbientParticles));
+        CreateManager("TrapManager", typeof(TrapManager));
+        CreateManager("WeaponAnimator", typeof(WeaponAnimator));
     }
 
     void CreateManager(string name, System.Type component)

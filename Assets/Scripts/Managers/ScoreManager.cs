@@ -5,6 +5,7 @@ public class ScoreManager : MonoBehaviour
     public static ScoreManager Instance;
 
     private int score = 0;
+    private int gold = 0;
 
     void Awake()
     {
@@ -24,5 +25,25 @@ public class ScoreManager : MonoBehaviour
     public void ResetScore()
     {
         score = 0;
+    }
+
+    public void AddGold(int amount)
+    {
+        gold += amount;
+    }
+
+    public int GetGold()
+    {
+        return gold;
+    }
+
+    public bool SpendGold(int amount)
+    {
+        if (gold >= amount)
+        {
+            gold -= amount;
+            return true;
+        }
+        return false;
     }
 }

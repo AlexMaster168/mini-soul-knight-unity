@@ -22,13 +22,14 @@ public class RoomManager : MonoBehaviour
 
         count = roomData.isStartRoom ? 2 : Mathf.Min(2 + floor * 2, 10);
 
-        string[] floor1 = { "Slime", "Goblin", "Bat", "Spider" };
-        string[] floor2 = { "Slime", "Goblin", "Skeleton", "Wolf", "Bat", "Speedster" };
-        string[] floor3 = { "Skeleton", "Shooter", "Archer", "Ghost", "Zombie", "Spider", "Snake" };
-        string[] floor4 = { "Shooter", "Mage", "DarkKnight", "Bomber", "Flyer", "Orc", "IceMage" };
-        string[] floor5 = { "DarkKnight", "FireMage", "NecroMage", "Tank", "Guardian", "Spawner", "Golem" };
+        string[] floor1 = { "Slime", "Goblin", "Bat", "Spider", "Imp" };
+        string[] floor2 = { "Slime", "Goblin", "Skeleton", "Wolf", "Bat", "Speedster", "Imp", "Werewolf" };
+        string[] floor3 = { "Skeleton", "Shooter", "Archer", "Ghost", "Zombie", "Spider", "Snake", "Lich", "Harpy" };
+        string[] floor4 = { "Shooter", "Mage", "DarkKnight", "Bomber", "Flyer", "Orc", "IceMage", "Warlock", "Assassin", "FireElemental" };
+        string[] floor5 = { "DarkKnight", "FireMage", "NecroMage", "Tank", "Guardian", "Spawner", "Golem", "StormMage", "Wraith", "Shadow", "Troll", "Nightmare" };
+        string[] floor6 = { "DarkKnight", "Lich", "StormMage", "Tank", "Guardian", "Golem", "Abomination", "CrystalGolem", "Berserker", "Werewolf", "LivingBomb", "Nightmare" };
 
-        string[] pool = floor <= 1 ? floor1 : floor == 2 ? floor2 : floor == 3 ? floor3 : floor == 4 ? floor4 : floor5;
+        string[] pool = floor <= 1 ? floor1 : floor == 2 ? floor2 : floor == 3 ? floor3 : floor == 4 ? floor4 : floor == 5 ? floor5 : floor6;
 
         enemiesAlive = count;
         for (int i = 0; i < count; i++)
@@ -134,6 +135,14 @@ public class RoomManager : MonoBehaviour
         enemy.transform.localScale = Vector3.one * data.scale;
         sr.sprite = GetEnemySprite(type);
 
+        GameObject shadow = new GameObject("Shadow");
+        shadow.transform.SetParent(enemy.transform);
+        shadow.transform.localPosition = new Vector3(0, -0.4f, 0);
+        SpriteRenderer shadowSr = shadow.AddComponent<SpriteRenderer>();
+        shadowSr.sprite = SpriteGenerator.CreateCircle(12, new Color(0, 0, 0, 0.25f));
+        shadowSr.sortingOrder = -1;
+        shadow.transform.localScale = new Vector3(1f, 0.35f, 1f);
+
         if (GameData.Bosses.ContainsKey(type))
             enemy.AddComponent<Boss>();
 
@@ -189,6 +198,22 @@ public class RoomManager : MonoBehaviour
             case "Snake": return SpriteGenerator.CreateSlime(32, new Color(0.4f, 0.7f, 0.1f));
             case "Spawner": return SpriteGenerator.CreateBoss(48, new Color(0.6f, 0.2f, 0.6f));
             case "Guardian": return SpriteGenerator.CreateDarkKnight(48);
+            case "Imp": return SpriteGenerator.CreateSlime(28, new Color(1f, 0.3f, 0.1f));
+            case "Werewolf": return SpriteGenerator.CreateSkeleton(32);
+            case "Berserker": return SpriteGenerator.CreateTank(32);
+            case "Lich": return SpriteGenerator.CreateMage(36);
+            case "Warlock": return SpriteGenerator.CreateMage(32);
+            case "StormMage": return SpriteGenerator.CreateMage(32);
+            case "Wraith": return SpriteGenerator.CreateGhost(32);
+            case "Assassin": return SpriteGenerator.CreateShooter(28);
+            case "Shadow": return SpriteGenerator.CreateGhost(32);
+            case "Troll": return SpriteGenerator.CreateTank(36);
+            case "Abomination": return SpriteGenerator.CreateTank(40);
+            case "CrystalGolem": return SpriteGenerator.CreateTank(44);
+            case "Harpy": return SpriteGenerator.CreateFlyer(32);
+            case "Nightmare": return SpriteGenerator.CreateBoss(36, new Color(0.3f, 0.1f, 0.4f));
+            case "FireElemental": return SpriteGenerator.CreateBomber(32);
+            case "LivingBomb": return SpriteGenerator.CreateBomber(24);
             case "CrownedBoar": return SpriteGenerator.CreateBoss(64, new Color(0.8f, 0.4f, 0.1f));
             case "Dragon": return SpriteGenerator.CreateBoss(64, new Color(0.8f, 0.1f, 0.1f));
             case "Necromancer": return SpriteGenerator.CreateBoss(64, new Color(0.5f, 0.1f, 0.8f));

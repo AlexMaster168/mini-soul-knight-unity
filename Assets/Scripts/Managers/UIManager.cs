@@ -11,6 +11,7 @@ public class UIManager : MonoBehaviour
     private Text levelText;
     private Text scoreText;
     private Text weaponText;
+    private Text goldText;
     private Image healthBar;
     private Image energyBar;
     private Image armorBar;
@@ -22,6 +23,8 @@ public class UIManager : MonoBehaviour
     private GameObject statsPanel;
     private Text statsText;
     private bool statsVisible;
+    private Text energyWarning;
+    private float warningTimer;
 
     void Awake()
     {
@@ -108,6 +111,15 @@ public class UIManager : MonoBehaviour
         scoreText.alignment = TextAnchor.UpperRight;
         scoreText.text = "Score: 0";
 
+        // === GOLD ===
+        GameObject goldObj = CreatePanel(canvas.transform, "Gold", new Vector2(1, 1), new Vector2(1, 1), new Vector2(-10, -38), new Vector2(180, 25));
+        goldText = goldObj.AddComponent<Text>();
+        goldText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+        goldText.fontSize = 16;
+        goldText.color = new Color(1f, 0.85f, 0.1f);
+        goldText.alignment = TextAnchor.UpperRight;
+        goldText.text = "Gold: 0";
+
         // === WEAPON ===
         GameObject weaponObj = CreatePanel(canvas.transform, "Weapon", new Vector2(0, 0), new Vector2(0, 0), new Vector2(10, 65), new Vector2(220, 30));
         weaponText = weaponObj.AddComponent<Text>();
@@ -124,7 +136,7 @@ public class UIManager : MonoBehaviour
         hintText.fontSize = 12;
         hintText.color = new Color(1f, 1f, 1f, 0.4f);
         hintText.alignment = TextAnchor.MiddleCenter;
-        hintText.text = "WASD Move | Click Shoot | Space Dash | Q Switch | Tab Stats";
+        hintText.text = "WASD Move | Click Shoot | Space Dash | 1-5 Weapons | E Shop | Tab Stats";
 
         // === MINIMAP ===
         GameObject mmObj = CreatePanel(canvas.transform, "Minimap", new Vector2(1, 0), new Vector2(1, 0), new Vector2(-10, 35), new Vector2(MINIMAP_SIZE, MINIMAP_SIZE));
@@ -145,10 +157,21 @@ public class UIManager : MonoBehaviour
         borderRect.offsetMax = new Vector2(2, 2);
 
         // === STATS PANEL (Tab) ===
-        statsPanel = CreatePanel(canvas.transform, "StatsPanel", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(350, 400));
+        statsPanel = CreatePanel(canvas.transform, "StatsPanel", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0, -160), new Vector2(380, 480));
         Image statsBg = statsPanel.AddComponent<Image>();
         statsBg.color = new Color(0.05f, 0.05f, 0.1f, 0.92f);
         statsPanel.SetActive(false);
+
+        // === ENERGY WARNING ===
+        GameObject warnObj = CreatePanel(canvas.transform, "EnergyWarn", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0, 80), new Vector2(400, 40));
+        energyWarning = warnObj.AddComponent<Text>();
+        energyWarning.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+        energyWarning.fontSize = 28;
+        energyWarning.color = new Color(1f, 0.3f, 0.3f);
+        energyWarning.alignment = TextAnchor.MiddleCenter;
+        energyWarning.fontStyle = FontStyle.Bold;
+        energyWarning.text = "";
+        warnObj.SetActive(false);
 
         GameObject statsTitle = CreatePanel(statsPanel.transform, "Title", new Vector2(0, 1), new Vector2(1, 1), new Vector2(0, -10), new Vector2(0, 35));
         Text titleText = statsTitle.AddComponent<Text>();
@@ -274,10 +297,44 @@ public class UIManager : MonoBehaviour
         if (ScoreManager.Instance != null)
             scoreText.text = "Score: " + ScoreManager.Instance.GetScore();
 
+        if (ScoreManager.Instance != null)
+            goldText.text = "Gold: " + ScoreManager.Instance.GetGold();
+
         if (statsVisible)
             UpdateStatsText();
 
+        UpdateEnergyWarning();
         UpdateMinimap();
+    }
+
+    void UpdateEnergyWarning()
+    {
+        if (PlayerController.Instance == null) return;
+
+        int energy = PlayerController.Instance.currentEnergy;
+        int cost = PlayerController.Instance.energyCost;
+
+        if (energy < cost)
+        {
+            energyWarning.gameObject.SetActive(true);
+            energyWarning.text = "NO ENERGY!";
+            warningTimer += Time.deltaTime;
+            float alpha = Mathf.PingPong(warningTimer * 4f, 1f);
+            energyWarning.color = new Color(1f, 0.3f, 0.3f, alpha);
+        }
+        else if (energy < cost * 3)
+        {
+            energyWarning.gameObject.SetActive(true);
+            energyWarning.text = "Low Energy!";
+            warningTimer += Time.deltaTime;
+            float alpha = Mathf.PingPong(warningTimer * 3f, 0.8f);
+            energyWarning.color = new Color(1f, 0.8f, 0.2f, alpha);
+        }
+        else
+        {
+            energyWarning.gameObject.SetActive(false);
+            warningTimer = 0f;
+        }
     }
 
     public void ToggleStatsPanel()
@@ -286,6 +343,11 @@ public class UIManager : MonoBehaviour
         statsPanel.SetActive(statsVisible);
         if (statsVisible)
             UpdateStatsText();
+    }
+
+    public bool StatsVisible()
+    {
+        return statsVisible;
     }
 
     void UpdateStatsText()
@@ -303,6 +365,7 @@ public class UIManager : MonoBehaviour
         }
 
         int score = ScoreManager.Instance != null ? ScoreManager.Instance.GetScore() : 0;
+        int gold = ScoreManager.Instance != null ? ScoreManager.Instance.GetGold() : 0;
         int floor = DungeonGenerator.Instance != null ? DungeonGenerator.Instance.GetFloor() : 1;
 
         statsText.text =
@@ -319,6 +382,7 @@ public class UIManager : MonoBehaviour
             "<color=#CE93D8>Weapon:</color>      " + weaponName + "\n" +
             "<color=#BA68C8>Arsenal:</color>     " + weaponCount + " weapons\n" +
             "\n" +
+            "<color=#FFD700>Gold:</color>        " + gold + "\n" +
             "<color=#90A4AE>Floor:</color>       " + floor + "\n" +
             "<color=#B0BEC5>Score:</color>      " + score;
     }

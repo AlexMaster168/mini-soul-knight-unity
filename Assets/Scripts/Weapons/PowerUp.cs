@@ -24,7 +24,6 @@ public class PowerUp : MonoBehaviour
     void Update()
     {
         transform.position = startPos + Vector3.up * Mathf.Sin(Time.time * 2f) * 0.15f;
-        transform.Rotate(0, 0, 90f * Time.deltaTime);
 
         PlayerController player = PlayerController.Instance;
         if (player == null) return;

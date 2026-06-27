@@ -172,11 +172,21 @@ public class DungeonGenerator : MonoBehaviour
         CreateFloor(roomObj.transform, room.worldCenter);
         CreateWalls(roomObj.transform, room.worldCenter, room);
         CreateTorches(roomObj.transform, room.worldCenter);
+
+        if (!room.isStartRoom && !room.isBossRoom && TrapManager.Instance != null)
+            TrapManager.Instance.SpawnRoomTraps(room.worldCenter, roomInnerW, roomInnerH, room.isBossRoom);
     }
 
     void CreateFloor(Transform parent, Vector3 center)
     {
-        Sprite floorSprite = SpriteGenerator.CreateTile(32, new Color(0.35f, 0.33f, 0.3f), new Color(0.28f, 0.26f, 0.24f));
+        Color baseColor = new Color(0.35f, 0.33f, 0.3f);
+        Color lineColor = new Color(0.28f, 0.26f, 0.24f);
+        Color crackColor = new Color(0.25f, 0.23f, 0.2f);
+
+        Sprite floorA = SpriteGenerator.CreateTile(32, baseColor, lineColor);
+        Sprite floorB = SpriteGenerator.CreateTile(32, baseColor * 0.95f, lineColor);
+        Sprite floorC = SpriteGenerator.CreateTile(32, baseColor * 1.05f, crackColor);
+
         for (int x = 0; x < roomInnerW; x++)
         {
             for (int y = 0; y < roomInnerH; y++)
@@ -185,10 +195,44 @@ public class DungeonGenerator : MonoBehaviour
                 tile.transform.SetParent(parent);
                 tile.transform.position = center + new Vector3(x - roomInnerW / 2f + 0.5f, y - roomInnerH / 2f + 0.5f, 0);
                 SpriteRenderer sr = tile.AddComponent<SpriteRenderer>();
-                sr.sprite = floorSprite;
+
+                float rand = Mathf.PerlinNoise(x * 0.3f, y * 0.3f);
+                if (rand > 0.7f)
+                    sr.sprite = floorC;
+                else if (rand < 0.3f)
+                    sr.sprite = floorB;
+                else
+                    sr.sprite = floorA;
+
                 sr.sortingOrder = 0;
             }
         }
+
+        for (int i = 0; i < 6; i++)
+        {
+            float dx = Random.Range(-roomInnerW / 2f + 1, roomInnerW / 2f - 1);
+            float dy = Random.Range(-roomInnerH / 2f + 1, roomInnerH / 2f - 1);
+            SpawnFloorDetail(parent, center + new Vector3(dx, dy, 0));
+        }
+    }
+
+    void SpawnFloorDetail(Transform parent, Vector3 pos)
+    {
+        GameObject detail = new GameObject("FloorDetail");
+        detail.transform.SetParent(parent);
+        detail.transform.position = pos;
+        SpriteRenderer sr = detail.AddComponent<SpriteRenderer>();
+
+        int type = Random.Range(0, 3);
+        if (type == 0)
+            sr.sprite = SpriteGenerator.CreateCircle(6, new Color(0.3f, 0.28f, 0.25f, 0.5f));
+        else if (type == 1)
+            sr.sprite = SpriteGenerator.CreateSquare(6, new Color(0.28f, 0.25f, 0.22f, 0.4f));
+        else
+            sr.sprite = SpriteGenerator.CreateCircle(4, new Color(0.4f, 0.35f, 0.2f, 0.3f));
+
+        sr.sortingOrder = 0;
+        detail.transform.localScale = Vector3.one * Random.Range(0.1f, 0.2f);
     }
 
     void CreateWalls(Transform parent, Vector3 center, RoomData room)
@@ -268,17 +312,29 @@ public class DungeonGenerator : MonoBehaviour
         GameObject torch = new GameObject("Torch");
         torch.transform.SetParent(parent);
         torch.transform.position = pos;
+
         SpriteRenderer sr = torch.AddComponent<SpriteRenderer>();
-        sr.sprite = SpriteGenerator.CreateCircle(16, new Color(1f, 0.6f, 0.1f, 0.8f));
-        sr.sortingOrder = 2;
+        sr.sprite = SpriteGenerator.CreateSquare(8, new Color(0.4f, 0.25f, 0.1f));
+        sr.sortingOrder = 3;
+        torch.transform.localScale = Vector3.one * 0.3f;
+
+        GameObject flame = new GameObject("Flame");
+        flame.transform.SetParent(torch.transform);
+        flame.transform.localPosition = new Vector3(0, 0.4f, 0);
+        SpriteRenderer flameSr = flame.AddComponent<SpriteRenderer>();
+        flameSr.sprite = SpriteGenerator.CreateCircle(12, new Color(1f, 0.6f, 0.1f, 0.9f));
+        flameSr.sortingOrder = 4;
+        flame.transform.localScale = Vector3.one * 0.5f;
+        TorchFlicker tf = flame.AddComponent<TorchFlicker>();
 
         GameObject glow = new GameObject("Glow");
         glow.transform.SetParent(torch.transform);
-        glow.transform.localPosition = Vector3.zero;
-        glow.transform.localScale = Vector3.one * 3f;
+        glow.transform.localPosition = new Vector3(0, 0.3f, 0);
+        glow.transform.localScale = Vector3.one * 4f;
         SpriteRenderer glowSr = glow.AddComponent<SpriteRenderer>();
-        glowSr.sprite = SpriteGenerator.CreateCircle(16, new Color(1f, 0.5f, 0.1f, 0.3f));
+        glowSr.sprite = SpriteGenerator.CreateCircle(32, new Color(1f, 0.5f, 0.1f, 0.2f));
         glowSr.sortingOrder = 1;
+        glowSr.material.renderQueue = -1;
     }
 
     public void FindAndEnterNearestRoom(Vector3 playerPos)
@@ -337,6 +393,11 @@ public class DungeonGenerator : MonoBehaviour
 
         if (!currentRoom.cleared)
             currentRoom.roomManager.SpawnEnemies(floor);
+
+        if (currentRoom.isBossRoom && ProceduralMusic.Instance != null)
+            ProceduralMusic.Instance.SetBossMode(true);
+        else if (!currentRoom.isBossRoom && ProceduralMusic.Instance != null)
+            ProceduralMusic.Instance.SetBossMode(false);
     }
 
     System.Collections.IEnumerator EnableCameraFollow()
@@ -350,6 +411,9 @@ public class DungeonGenerator : MonoBehaviour
     {
         currentRoom.cleared = true;
         SpawnRoomLoot();
+
+        if (!currentRoom.isBossRoom)
+            SpawnShopKeeper();
 
         if (IsAdjacentToBoss())
             SpawnBossPrep();
@@ -375,7 +439,7 @@ public class DungeonGenerator : MonoBehaviour
         GameObject weaponObj = new GameObject("BossWeapon");
         weaponObj.transform.position = wpos;
         SpriteRenderer wsr = weaponObj.AddComponent<SpriteRenderer>();
-        wsr.sprite = SpriteGenerator.CreateSquare(16, new Color(1f, 0.4f, 0f));
+        wsr.sprite = SpriteGenerator.CreateDropWeapon(16);
         wsr.sortingOrder = 8;
         WeaponPickup wp = weaponObj.AddComponent<WeaponPickup>();
         wp.weaponName = "HolyGrenade";
@@ -384,10 +448,22 @@ public class DungeonGenerator : MonoBehaviour
         GameObject armorObj = new GameObject("ArmorPickup");
         armorObj.transform.position = apos;
         SpriteRenderer asr = armorObj.AddComponent<SpriteRenderer>();
-        asr.sprite = SpriteGenerator.CreateSquare(16, new Color(0.3f, 0.7f, 1f));
+        asr.sprite = SpriteGenerator.CreateDropArmor(16);
         asr.sortingOrder = 8;
         ArmorPickup ap = armorObj.AddComponent<ArmorPickup>();
         ap.armorAmount = 50;
+    }
+
+    void SpawnShopKeeper()
+    {
+        Vector3 pos = (Vector3)currentRoom.worldCenter + new Vector3(3.5f, 0, 0);
+        GameObject shopkeeper = new GameObject("ShopKeeper");
+        shopkeeper.transform.position = pos;
+        SpriteRenderer sr = shopkeeper.AddComponent<SpriteRenderer>();
+        sr.sprite = SpriteGenerator.CreateMerchant(32);
+        sr.sortingOrder = 10;
+        shopkeeper.AddComponent<BoxCollider2D>().isTrigger = true;
+        shopkeeper.AddComponent<ShopKeeper>();
     }
 
     void SpawnRoomLoot()
@@ -406,7 +482,7 @@ public class DungeonGenerator : MonoBehaviour
         }
         else
         {
-            int lootCount = Random.Range(2, 5);
+            int lootCount = Random.Range(1, 3);
             string[] lootTypes = { "health", "health", "energy", "energy", "weapon", "damage", "speed" };
 
             for (int i = 0; i < lootCount; i++)
@@ -428,26 +504,26 @@ public class DungeonGenerator : MonoBehaviour
         switch (type)
         {
             case "weapon":
-                sr.sprite = SpriteGenerator.CreateSquare(16, new Color(0.9f, 0.8f, 0.1f));
+                sr.sprite = SpriteGenerator.CreateDropWeapon(16);
                 obj.AddComponent<WeaponPickup>();
                 break;
             case "health":
-                sr.sprite = SpriteGenerator.CreateCircle(16, new Color(0.2f, 0.9f, 0.2f));
+                sr.sprite = SpriteGenerator.CreateDropHealth(16);
                 PowerUp pu = obj.AddComponent<PowerUp>();
                 pu.type = PowerUp.PowerUpType.HealthRestore;
                 break;
             case "energy":
-                sr.sprite = SpriteGenerator.CreateCircle(16, new Color(0.2f, 0.5f, 1f));
+                sr.sprite = SpriteGenerator.CreateDropEnergy(16);
                 PowerUp pe = obj.AddComponent<PowerUp>();
                 pe.type = PowerUp.PowerUpType.EnergyRestore;
                 break;
             case "damage":
-                sr.sprite = SpriteGenerator.CreateCircle(16, new Color(0.9f, 0.2f, 0.2f));
+                sr.sprite = SpriteGenerator.CreateDropDamage(16);
                 PowerUp pd = obj.AddComponent<PowerUp>();
                 pd.type = PowerUp.PowerUpType.DamageBoost;
                 break;
             case "speed":
-                sr.sprite = SpriteGenerator.CreateCircle(16, new Color(0.2f, 0.9f, 0.9f));
+                sr.sprite = SpriteGenerator.CreateDropSpeed(16);
                 PowerUp ps = obj.AddComponent<PowerUp>();
                 ps.type = PowerUp.PowerUpType.SpeedBoost;
                 break;

@@ -20,8 +20,6 @@ public class WeaponPickup : MonoBehaviour
             GameData.Weapons.Keys.CopyTo(keys, 0);
             weaponName = keys[Random.Range(0, keys.Length)];
         }
-
-        UpdateVisual();
     }
 
     void Update()
@@ -45,12 +43,6 @@ public class WeaponPickup : MonoBehaviour
                 EffectsManager.Instance.SpawnPickupEffect(transform.position, GetRarityColor());
             Destroy(gameObject);
         }
-    }
-
-    void UpdateVisual()
-    {
-        if (spriteRenderer == null) return;
-        spriteRenderer.color = GetRarityColor();
     }
 
     Color GetRarityColor()
