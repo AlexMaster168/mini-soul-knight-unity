@@ -406,6 +406,8 @@ public class LobbyUI : MonoBehaviour
 
     private bool isOpen;
     private int mode;   // 0 - герои, 1 - скины
+    private bool girls; // фильтр пола на вкладке героев
+    private readonly List<int> vis = new List<int>();
     private int index;
     private int openedFrame;
     private float messageTimer;
@@ -457,17 +459,17 @@ public class LobbyUI : MonoBehaviour
         detailIcon.preserveAspect = true;
         detailIcon2 = UiKit.MakeImage(panel.transform, "Preview2", Color.white, 760, 68, 220, 220);
         detailIcon2.preserveAspect = true;
-        detailTitle = UiKit.MakeText(panel.transform, "DTitle", 28, Color.white, TextAnchor.UpperLeft, 535, 296, 440, 36);
+        detailTitle = UiKit.MakeText(panel.transform, "DTitle", 28, Color.white, TextAnchor.UpperLeft, 535, 262, 440, 36);
         detailTitle.fontStyle = FontStyle.Bold;
-        detailSub = UiKit.MakeText(panel.transform, "DSub", 17, Color.gray, TextAnchor.UpperLeft, 535, 332, 440, 24);
-        detailBody = UiKit.MakeText(panel.transform, "DBody", 18, Color.white, TextAnchor.UpperLeft, 535, 362, 445, 170);
-        detailBuy = UiKit.MakeText(panel.transform, "DBuy", 22, new Color(1f, 0.9f, 0.4f), TextAnchor.MiddleLeft, 535, 500, 445, 46);
+        detailSub = UiKit.MakeText(panel.transform, "DSub", 17, Color.gray, TextAnchor.UpperLeft, 535, 298, 440, 24);
+        detailBody = UiKit.MakeText(panel.transform, "DBody", 16, Color.white, TextAnchor.UpperLeft, 535, 326, 445, 186);
+        detailBuy = UiKit.MakeText(panel.transform, "DBuy", 20, new Color(1f, 0.9f, 0.4f), TextAnchor.MiddleLeft, 535, 518, 445, 46);
         detailBuy.fontStyle = FontStyle.Bold;
 
         message = UiKit.MakeText(panel.transform, "Msg", 20, new Color(1f, 0.5f, 0.4f), TextAnchor.MiddleCenter, 25, 570, 950, 30);
         message.fontStyle = FontStyle.Bold;
         keys = UiKit.MakeText(panel.transform, "Keys", 16, new Color(1f, 1f, 1f, 0.6f), TextAnchor.MiddleCenter, 25, 600, 950, 28);
-        keys.text = "Up/Down select  |  T switch heroes / skins  |  Enter buy or equip  |  E close";
+        keys.text = "Up/Down select  |  T heroes / skins  |  G boys / girls  |  Enter buy or equip  |  E close";
         panel.SetActive(false);
     }
 
@@ -478,6 +480,7 @@ public class LobbyUI : MonoBehaviour
         openedFrame = Time.frameCount;
         panel.SetActive(true);
         message.text = "";
+        girls = MetaProgress.GetChar(MetaProgress.SelectedChar).female;
         index = 0;
         Refresh();
     }
@@ -492,7 +495,17 @@ public class LobbyUI : MonoBehaviour
         if (pc != null) MetaProgress.ApplyLook(pc.GetComponent<SpriteRenderer>());
     }
 
-    int Count { get { return mode == 0 ? MetaProgress.Characters.Length : MetaProgress.Skins.Length; } }
+    int Count { get { return vis.Count; } }
+
+    // какие записи показываем: герои выбранного пола либо все скины
+    void RebuildVis()
+    {
+        vis.Clear();
+        int n = mode == 0 ? MetaProgress.Characters.Length : MetaProgress.Skins.Length;
+        for (int i = 0; i < n; i++)
+            if (mode == 1 || MetaProgress.Characters[i].female == girls) vis.Add(i);
+        if (!vis.Contains(index)) index = vis[0];
+    }
 
     string IdAt(int i) { return mode == 0 ? MetaProgress.Characters[i].id : MetaProgress.Skins[i].id; }
 
@@ -526,35 +539,38 @@ public class LobbyUI : MonoBehaviour
 
     void Refresh()
     {
+        RebuildVis();
         bool skins = mode == 1;
         RectTransform d1 = detailIcon.rectTransform, d2 = detailIcon2.rectTransform;
-        d1.anchoredPosition = new Vector2(skins ? 540 : 640, -68);
-        d1.sizeDelta = skins ? new Vector2(200, 200) : new Vector2(220, 220);
-        d2.anchoredPosition = new Vector2(760, -68);
-        d2.sizeDelta = new Vector2(200, 200);
+        d1.anchoredPosition = new Vector2(skins ? 560 : 665, -68);
+        d1.sizeDelta = new Vector2(186, 186);
+        d2.anchoredPosition = new Vector2(770, -68);
+        d2.sizeDelta = new Vector2(186, 186);
         detailIcon2.enabled = skins;
-        title.text = "HERO MASTER     " + (mode == 0 ? "[ Heroes ]   Skins" : "Heroes   [ Skins ]") + "   (T)";
+        title.text = "HERO MASTER     " + (mode == 0 ? "[ Heroes ]   Skins" : "Heroes   [ Skins ]") + "   (T)" +
+                     (mode == 0 ? "      " + (girls ? "Boys   [ Girls ]" : "[ Boys ]   Girls") + "   (G)" : "");
         crystals.text = "Crystals: " + MetaProgress.Crystals;
 
         for (int i = 0; i < Rows; i++)
         {
-            bool exists = i < Count;
+            int r = i < vis.Count ? vis[i] : -1;
+            bool exists = r >= 0;
             rowBg[i].gameObject.SetActive(exists);
             if (!exists) continue;
 
-            rowBg[i].color = i == index ? new Color(0.3f, 0.22f, 0.5f, 1f) : new Color(0.12f, 0.1f, 0.2f, 0.9f);
-            rowIcon[i].sprite = skins ? SkinPreview(i, false) : Preview(i);
+            rowBg[i].color = r == index ? new Color(0.3f, 0.22f, 0.5f, 1f) : new Color(0.12f, 0.1f, 0.2f, 0.9f);
+            rowIcon[i].sprite = skins ? SkinPreview(r, false) : Preview(r);
             rowIcon2[i].enabled = skins;
-            if (skins) rowIcon2[i].sprite = SkinPreview(i, true);
+            if (skins) rowIcon2[i].sprite = SkinPreview(r, true);
             rowName[i].rectTransform.anchoredPosition = new Vector2(skins ? 104 : 62, 0);
-            rowName[i].text = IdAt(i);
-            bool owned = Owned(i);
-            if (Equipped(i)) { rowStatus[i].text = "EQUIPPED"; rowStatus[i].color = new Color(0.5f, 1f, 0.5f); }
+            rowName[i].text = IdAt(r);
+            bool owned = Owned(r);
+            if (Equipped(r)) { rowStatus[i].text = "EQUIPPED"; rowStatus[i].color = new Color(0.5f, 1f, 0.5f); }
             else if (owned) { rowStatus[i].text = "OWNED"; rowStatus[i].color = Color.gray; }
             else
             {
-                rowStatus[i].text = PriceAt(i) + " C";
-                rowStatus[i].color = MetaProgress.Crystals >= PriceAt(i) ? new Color(0.5f, 0.9f, 1f) : new Color(1f, 0.45f, 0.45f);
+                rowStatus[i].text = PriceAt(r) + " C";
+                rowStatus[i].color = MetaProgress.Crystals >= PriceAt(r) ? new Color(0.5f, 0.9f, 1f) : new Color(1f, 0.45f, 0.45f);
             }
         }
 
@@ -620,8 +636,9 @@ public class LobbyUI : MonoBehaviour
         }
 
         if (Input.GetKeyDown(KeyCode.T)) { mode = 1 - mode; index = 0; Refresh(); }
-        else if (Input.GetKeyDown(KeyCode.UpArrow) || Input.GetKeyDown(KeyCode.W)) { index = (index - 1 + Count) % Count; Refresh(); }
-        else if (Input.GetKeyDown(KeyCode.DownArrow) || Input.GetKeyDown(KeyCode.S)) { index = (index + 1) % Count; Refresh(); }
+        else if (Input.GetKeyDown(KeyCode.G) && mode == 0) { girls = !girls; index = -1; Refresh(); }
+        else if (Input.GetKeyDown(KeyCode.UpArrow) || Input.GetKeyDown(KeyCode.W)) { index = vis[(vis.IndexOf(index) - 1 + Count) % Count]; Refresh(); }
+        else if (Input.GetKeyDown(KeyCode.DownArrow) || Input.GetKeyDown(KeyCode.S)) { index = vis[(vis.IndexOf(index) + 1) % Count]; Refresh(); }
         else if (Input.GetKeyDown(KeyCode.Return)) { Activate(); Refresh(); }
         else if ((Input.GetKeyDown(KeyCode.E) && Time.frameCount != openedFrame) || Input.GetKeyDown(KeyCode.Escape)) Close();
     }
