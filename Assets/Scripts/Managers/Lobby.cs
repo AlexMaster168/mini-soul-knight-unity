@@ -50,6 +50,12 @@ public static class MetaProgress
             "Slow but very tough: 260 HP, 60 armor, -10% damage taken. Starts with a Shotgun."),
         new CharacterDef("Engineer", 900, 130, 220, 0, 8f, 6f, 1f, 1f, 0f, "Laser", "Scout Bot",
             "Starts every run with a Scout Bot companion and a Laser."),
+        new CharacterDef("Ranger", 1100, 120, 240, 0, 8.5f, 6f, 0.9f, 1.1f, 0f, "Crossbow", null,
+            "Sharpshooter: +10% damage, quick on his feet. Starts with a Crossbow.") { kind = "Archer" },
+        new CharacterDef("Pyromancer", 1300, 110, 300, 0, 8f, 8f, 1f, 1.2f, 0f, "Flamethrower", null,
+            "Fire mage: +20% damage and a big energy pool. Starts with a Flamethrower.") { kind = "Pyro" },
+        new CharacterDef("Samurai", 1500, 180, 200, 30, 8.6f, 5f, 0.7f, 1.15f, 0.05f, "Katana", null,
+            "Disciplined blade master: 180 HP, 30 armor, fast dash, +15% damage. Starts with a Katana.") { kind = "Samurai" },
 
         // женские герои
         new CharacterDef("Valkyrie", 300, 140, 210, 0, 8.4f, 5f, 0.9f, 1.05f, 0f, "Spear", null,
@@ -62,6 +68,12 @@ public static class MetaProgress
             "Tough fighter: 240 HP, 40 armor, -8% damage taken, +10% damage. Starts with an Axe.") { kind = "Tank", female = true },
         new CharacterDef("Mechanic", 1000, 125, 240, 0, 8f, 6f, 1f, 1f, 0f, "Plasma", "Gunner Bot",
             "Starts every run with a rapid-fire Gunner Bot and a Plasma gun.") { kind = "Engineer", female = true },
+        new CharacterDef("Huntress", 1200, 115, 260, 0, 8.8f, 7f, 0.85f, 1.15f, 0f, "Sniper", null,
+            "Fleet-footed huntress: +15% damage, faster energy regeneration. Starts with a Sniper rifle.") { kind = "Archer", female = true },
+        new CharacterDef("Ember", 1400, 105, 320, 0, 8f, 9f, 1f, 1.25f, 0f, "GrenadeLauncher", null,
+            "Burning sorceress: +25% damage, huge energy pool. Starts with a Grenade Launcher.") { kind = "Pyro", female = true },
+        new CharacterDef("Sakura", 1600, 160, 220, 20, 9f, 5f, 0.6f, 1.2f, 0.05f, "Chakram", null,
+            "Graceful warrior: very fast dash and +20% damage. Starts with a Chakram.") { kind = "Samurai", female = true },
     };
 
     public static readonly SkinDef[] Skins =
@@ -97,6 +109,12 @@ public static class MetaProgress
         {
             PlayerPrefs.SetInt(KInit, 1);
             PlayerPrefs.SetInt(KCrystals, 0);
+        }
+        if (PlayerPrefs.GetInt("meta_gift3", 0) == 0)
+        {
+            PlayerPrefs.SetInt("meta_gift3", 1);
+            PlayerPrefs.SetInt(KCrystals, PlayerPrefs.GetInt(KCrystals, 0) + 10000);
+            PlayerPrefs.Save();
         }
         // большой стартовый подарок: хватает почти на всех героев и скины (выдаётся один раз)
         if (PlayerPrefs.GetInt("meta_gift2", 0) == 0)
@@ -406,7 +424,8 @@ public class LobbyUI : MonoBehaviour
 
     private bool isOpen;
     private int mode;   // 0 - герои, 1 - скины
-    private bool girls; // фильтр пола на вкладке героев
+    private readonly bool[] fem = new bool[16];
+    int Kinds { get { return MetaProgress.Characters.Length / 2; } } // какой вариант (парень / девушка) показан у каждого героя
     private readonly List<int> vis = new List<int>();
     private int index;
     private int openedFrame;
@@ -469,7 +488,7 @@ public class LobbyUI : MonoBehaviour
         message = UiKit.MakeText(panel.transform, "Msg", 20, new Color(1f, 0.5f, 0.4f), TextAnchor.MiddleCenter, 25, 570, 950, 30);
         message.fontStyle = FontStyle.Bold;
         keys = UiKit.MakeText(panel.transform, "Keys", 16, new Color(1f, 1f, 1f, 0.6f), TextAnchor.MiddleCenter, 25, 600, 950, 28);
-        keys.text = "Up/Down select  |  T heroes / skins  |  G boys / girls  |  Enter buy or equip  |  E close";
+        keys.text = "Up/Down select  |  T heroes / skins  |  G boy / girl  |  Enter buy or equip  |  E close";
         panel.SetActive(false);
     }
 
@@ -480,8 +499,10 @@ public class LobbyUI : MonoBehaviour
         openedFrame = Time.frameCount;
         panel.SetActive(true);
         message.text = "";
-        girls = MetaProgress.GetChar(MetaProgress.SelectedChar).female;
-        index = 0;
+        for (int k = 0; k < fem.Length; k++) fem[k] = false;
+        int selIdx = System.Array.IndexOf(MetaProgress.Characters, MetaProgress.GetChar(MetaProgress.SelectedChar));
+        if (selIdx >= Kinds) fem[selIdx - Kinds] = true;
+        index = selIdx >= 0 ? selIdx : 0;
         Refresh();
     }
 
@@ -503,7 +524,13 @@ public class LobbyUI : MonoBehaviour
         vis.Clear();
         int n = mode == 0 ? MetaProgress.Characters.Length : MetaProgress.Skins.Length;
         for (int i = 0; i < n; i++)
-            if (mode == 1 || MetaProgress.Characters[i].female == girls) vis.Add(i);
+            vis.Add(i);
+        if (mode == 0)
+        {
+            // один ряд на героя: вариант парня (i) или девушки (i + 5) в зависимости от пола
+            vis.Clear();
+            for (int k = 0; k < Kinds; k++) vis.Add(k + (fem[k] ? Kinds : 0));
+        }
         if (!vis.Contains(index)) index = vis[0];
     }
 
@@ -529,6 +556,13 @@ public class LobbyUI : MonoBehaviour
         return PixelArt.Hero(cur.kind, s.main, s.accent, cur.female);
     }
 
+    // обе версии героя (парень и девушка) в выбранном скине
+    Sprite HeroPreview(int kindIndex, bool girl)
+    {
+        SkinDef sk = MetaProgress.GetSkin(MetaProgress.SelectedSkin);
+        return PixelArt.Hero(MetaProgress.Characters[kindIndex].kind, sk.main, sk.accent, girl);
+    }
+
     // во вкладке скинов показываем сразу парня и девушку в этом скине
     Sprite SkinPreview(int i, bool girl)
     {
@@ -542,13 +576,13 @@ public class LobbyUI : MonoBehaviour
         RebuildVis();
         bool skins = mode == 1;
         RectTransform d1 = detailIcon.rectTransform, d2 = detailIcon2.rectTransform;
-        d1.anchoredPosition = new Vector2(skins ? 560 : 665, -68);
+        d1.anchoredPosition = new Vector2(560, -68);
         d1.sizeDelta = new Vector2(186, 186);
         d2.anchoredPosition = new Vector2(770, -68);
         d2.sizeDelta = new Vector2(186, 186);
-        detailIcon2.enabled = skins;
+        detailIcon2.enabled = true;
         title.text = "HERO MASTER     " + (mode == 0 ? "[ Heroes ]   Skins" : "Heroes   [ Skins ]") + "   (T)" +
-                     (mode == 0 ? "      " + (girls ? "Boys   [ Girls ]" : "[ Boys ]   Girls") + "   (G)" : "");
+                     (mode == 0 ? "      " + (index >= Kinds ? "Boy   [ Girl ]" : "[ Boy ]   Girl") + "   (G)" : "");
         crystals.text = "Crystals: " + MetaProgress.Crystals;
 
         for (int i = 0; i < Rows; i++)
@@ -574,8 +608,11 @@ public class LobbyUI : MonoBehaviour
             }
         }
 
-        detailIcon.sprite = skins ? SkinPreview(index, false) : Preview(index);
-        if (skins) detailIcon2.sprite = SkinPreview(index, true);
+        detailIcon.sprite = skins ? SkinPreview(index, false) : HeroPreview(index % Kinds, false);
+        detailIcon2.sprite = skins ? SkinPreview(index, true) : HeroPreview(index % Kinds, true);
+        bool viewGirl = !skins && index >= Kinds;
+        detailIcon.color = skins || !viewGirl ? Color.white : new Color(1f, 1f, 1f, 0.35f);
+        detailIcon2.color = skins || viewGirl ? Color.white : new Color(1f, 1f, 1f, 0.35f);
         detailTitle.text = IdAt(index);
         if (mode == 0)
         {
@@ -636,7 +673,13 @@ public class LobbyUI : MonoBehaviour
         }
 
         if (Input.GetKeyDown(KeyCode.T)) { mode = 1 - mode; index = 0; Refresh(); }
-        else if (Input.GetKeyDown(KeyCode.G) && mode == 0) { girls = !girls; index = -1; Refresh(); }
+        else if (Input.GetKeyDown(KeyCode.G) && mode == 0)
+        {
+            int k = index % Kinds;
+            fem[k] = !fem[k];
+            index = k + (fem[k] ? Kinds : 0);
+            Refresh();
+        }
         else if (Input.GetKeyDown(KeyCode.UpArrow) || Input.GetKeyDown(KeyCode.W)) { index = vis[(vis.IndexOf(index) - 1 + Count) % Count]; Refresh(); }
         else if (Input.GetKeyDown(KeyCode.DownArrow) || Input.GetKeyDown(KeyCode.S)) { index = vis[(vis.IndexOf(index) + 1) % Count]; Refresh(); }
         else if (Input.GetKeyDown(KeyCode.Return)) { Activate(); Refresh(); }

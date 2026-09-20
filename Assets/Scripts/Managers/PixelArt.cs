@@ -609,6 +609,9 @@ public static class PixelArt
                 case "Rogue": hair = female ? new Color(0.55f, 0.3f, 0.85f) : new Color(0.16f, 0.16f, 0.32f); eye = female ? new Color(1f, 0.8f, 0.2f) : new Color(1f, 0.25f, 0.3f); break;
                 case "Mage": hair = female ? new Color(1f, 0.6f, 0.8f) : new Color(0.9f, 0.93f, 1f); eye = female ? new Color(0.6f, 0.4f, 1f) : new Color(0.7f, 0.4f, 1f); break;
                 case "Tank": hair = female ? new Color(1f, 0.55f, 0.15f) : new Color(0.85f, 0.2f, 0.15f); eye = female ? new Color(0.3f, 0.85f, 0.4f) : new Color(1f, 0.7f, 0.15f); break;
+                case "Archer": hair = female ? new Color(0.5f, 0.85f, 0.45f) : new Color(0.3f, 0.6f, 0.25f); eye = female ? new Color(0.3f, 0.8f, 0.9f) : new Color(1f, 0.75f, 0.2f); break;
+                case "Pyro": hair = female ? new Color(1f, 0.3f, 0.4f) : new Color(1f, 0.5f, 0.1f); eye = female ? new Color(1f, 0.6f, 0.1f) : new Color(1f, 0.85f, 0.2f); break;
+                case "Samurai": hair = female ? new Color(0.2f, 0.25f, 0.5f) : new Color(0.12f, 0.1f, 0.15f); eye = female ? new Color(1f, 0.5f, 0.6f) : new Color(0.85f, 0.2f, 0.2f); break;
                 case "Engineer": hair = female ? new Color(0.2f, 0.78f, 0.78f) : new Color(0.5f, 0.32f, 0.2f); eye = female ? new Color(1f, 0.6f, 0.2f) : new Color(0.3f, 0.85f, 0.4f); break;
                 default: hair = female ? new Color(1f, 0.85f, 0.4f) : new Color(0.62f, 0.36f, 0.18f); eye = new Color(0.3f, 0.6f, 1f); break;
             }
@@ -685,6 +688,28 @@ public static class PixelArt
                     if (female) { c.Tri(9, 27, 6, 31.5f, 12, 28, Bone); }
                     else { c.Tri(9, 28, 12, 28, 9, 31.9f, hair); c.Tri(12, 29, 16, 29, 14, 31.9f, hair); c.Line(10, 19, 10, 21, R, 1f); }
                     break;
+                case "Archer":
+                    c.Rect(9, 25, 15, 26, main);
+                    c.Rect(9, 27, 13, 27, main);
+                    c.Line(11, 13, 15, 7, accent, 1f);
+                    c.Rect(8, 8, 9, 10, accent);
+                    c.Rect(11, 3, 15, 5, dark);
+                    break;
+                case "Pyro":
+                    c.Rect(10, 2, 15, 12, main);
+                    c.Rect(10, 2, 15, 2, accent);
+                    c.Ell(9, 13, 3f, 2f, accent);
+                    c.Ell(13.5f, 9, 1.4f, 1.7f, Y);
+                    c.Tri(9, 28, 13, 28, 10, 31.9f, hair); c.Tri(12, 29, 16, 29, 14.5f, 31.9f, O);
+                    break;
+                case "Samurai":
+                    c.Rect(7, 12, 10, 14, accent);
+                    c.Rect(6, 9, 7, 13, accent);
+                    c.Line(11, 13, 15, 8, accent, 1f);
+                    c.Rect(9, 24, 15, 24, R);
+                    c.Ell(16, 29.5f, 2.4f, 2f, hair);
+                    c.Rect(15, 27, 16, 27, R);
+                    break;
                 default: // Engineer
                     c.Rect(6, 7, 8, 12, accent);
                     c.Rect(9, 25, 15, 26, dark);
@@ -693,6 +718,14 @@ public static class PixelArt
                     c.Rect(11, 8, 15, 8, Y);
                     if (!female) { c.Tri(9, 28, 13, 28, 10, 31.5f, hair); c.Tri(13, 29, 17, 29, 15, 31.5f, hair); }
                     break;
+            }
+
+            // --- женский силуэт: лёгкий изгиб груди ---
+            if (female)
+            {
+                c.Rect(10, 10, 10, 11, main);
+                c.Rect(11, 9, 15, 9, Dk(main, 0.75f));
+                c.Px(12, 11, Lt(main));
             }
 
             c.MirrorLeft();
@@ -704,6 +737,8 @@ public static class PixelArt
                 c.Line(28, 17, 27, 10, hair, 2.4f);
                 c.Rect(24, 24, 25, 25, accent);
             }
+            if (kind == "Archer") c.Line(22, 27, 27, 31, accent, 1.4f);
+            if (kind == "Samurai") { c.Line(20, 5, 26, 15, S, 1.4f); c.Rect(19, 4, 20, 5, Brown); }
             if (!female && kind == "Rogue") c.Line(20, 13, 25, 8, accent, 2f);
             if (kind == "Tank" && !female) c.Rect(22, 18, 22, 20, R);
             if (kind == "Mage" && !female) c.Line(22, 13, 26, 6, hair, 2f);
