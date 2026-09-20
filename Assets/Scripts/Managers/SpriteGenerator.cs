@@ -2,7 +2,26 @@ using UnityEngine;
 
 public static class SpriteGenerator
 {
+    static readonly System.Collections.Generic.Dictionary<long, Sprite> smallCache = new System.Collections.Generic.Dictionary<long, Sprite>();
+
+    static long CacheKey(int kind, int size, Color c)
+    {
+        Color32 c32 = c;
+        long packed = (uint)(c32.r | (c32.g << 8) | (c32.b << 16) | (c32.a << 24));
+        return ((long)kind << 56) ^ ((long)size << 40) ^ packed;
+    }
+
     public static Sprite CreateSquare(int size, Color color)
+    {
+        long key = CacheKey(1, size, color);
+        Sprite cached;
+        if (smallCache.TryGetValue(key, out cached) && cached != null) return cached;
+        Sprite made = CreateSquareRaw(size, color);
+        smallCache[key] = made;
+        return made;
+    }
+
+    static Sprite CreateSquareRaw(int size, Color color)
     {
         Texture2D tex = new Texture2D(size, size);
         Color[] pixels = new Color[size * size];
@@ -14,6 +33,16 @@ public static class SpriteGenerator
     }
 
     public static Sprite CreateCircle(int size, Color color)
+    {
+        long key = CacheKey(2, size, color);
+        Sprite cached;
+        if (smallCache.TryGetValue(key, out cached) && cached != null) return cached;
+        Sprite made = CreateCircleRaw(size, color);
+        smallCache[key] = made;
+        return made;
+    }
+
+    static Sprite CreateCircleRaw(int size, Color color)
     {
         Texture2D tex = new Texture2D(size, size);
         Color clear = new Color(0, 0, 0, 0);

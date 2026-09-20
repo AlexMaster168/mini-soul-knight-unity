@@ -20,7 +20,7 @@ public class Boss : MonoBehaviour
 
     void Update()
     {
-        if (enemy == null || player == null) return;
+        if (enemy == null || player == null || enemy.IsSpawning) return;
 
         phaseTimer -= Time.deltaTime;
         specialTimer -= Time.deltaTime;
@@ -82,7 +82,7 @@ public class Boss : MonoBehaviour
             float angle = Mathf.Atan2(toPlayer.y, toPlayer.x) * Mathf.Rad2Deg;
             float spread = (i - count / 2f) * 15f;
             Vector2 dir = Quaternion.Euler(0, 0, spread) * toPlayer;
-            GameSetup.Instance.SpawnEnemyBullet(transform.position, dir, enemy.damage / 2);
+            enemy.FireBullet(dir, enemy.damage / 2);
         }
     }
 
@@ -92,7 +92,7 @@ public class Boss : MonoBehaviour
         {
             float angle = (360f / count) * i * Mathf.Deg2Rad;
             Vector2 dir = new Vector2(Mathf.Cos(angle), Mathf.Sin(angle));
-            GameSetup.Instance.SpawnEnemyBullet(transform.position, dir, enemy.damage / 3);
+            enemy.FireBullet(dir, enemy.damage / 3);
         }
     }
 

@@ -28,10 +28,20 @@ public class Enemy : MonoBehaviour
     [HideInInspector] public SpriteRenderer healthBarFill;
 
     protected Transform player;
-    protected float attackTimer;
-    protected float shootTimer;
+    [HideInInspector] public float attackTimer;
+    [HideInInspector] public float shootTimer;
+    [HideInInspector] public EnemyAbility ability;
+    [HideInInspector] public bool noKnockback;
     private SpriteRenderer spriteRenderer;
     private Color originalColor;
+    private Vector3 baseScale = Vector3.one;
+    private float spawnTimer;
+    private float spawnDuration = 0.6f;
+
+    public Transform playerTransform { get { return player; } }
+    public SpriteRenderer Sprite { get { return spriteRenderer; } }
+    public Vector3 BaseScale { get { return baseScale; } }
+    public bool IsSpawning { get { return spawnTimer > 0f; } }
 
     void Start()
     {
@@ -40,13 +50,40 @@ public class Enemy : MonoBehaviour
         spriteRenderer = GetComponent<SpriteRenderer>();
         if (spriteRenderer != null)
             originalColor = spriteRenderer.color;
+
+        ability = GetComponent<EnemyAbility>();
+
+        // эффект появления: враг "вырастает" и не действует пока spawnTimer > 0
+        baseScale = transform.localScale;
+        spawnDuration = GetComponent<Boss>() != null ? 1.1f : 0.6f;
+        spawnTimer = spawnDuration;
+        transform.localScale = Vector3.zero;
+        if (EffectsManager.Instance != null)
+            EffectsManager.Instance.SpawnPickupEffect(transform.position, new Color(0.8f, 0.5f, 1f));
     }
 
     void Update()
     {
         if (player == null) return;
 
+        if (spawnTimer > 0f)
+        {
+            spawnTimer -= Time.deltaTime;
+            float k = Mathf.Clamp01(1f - spawnTimer / spawnDuration);
+            float c1 = 1.70158f, c3 = c1 + 1f;
+            float eased = 1f + c3 * Mathf.Pow(k - 1f, 3) + c1 * Mathf.Pow(k - 1f, 2);
+            transform.localScale = baseScale * Mathf.Max(0.01f, eased);
+            if (spawnTimer <= 0f) transform.localScale = baseScale;
+            return;
+        }
+
         float dist = Vector2.Distance(transform.position, player.position);
+
+        if (ability != null && ability.Tick(dist))
+        {
+            attackTimer -= Time.deltaTime;
+            return;
+        }
 
         if (dist <= attackRange)
         {
@@ -67,6 +104,82 @@ public class Enemy : MonoBehaviour
         }
 
         attackTimer -= Time.deltaTime;
+    }
+
+    // Границы комнаты для врагов (внутренняя область минус отступ)
+    public Vector2 ClampToRoom(Vector2 p, float margin = 0.8f)
+    {
+        if (roomManager != null && roomManager.roomData != null)
+        {
+            Vector3 c = roomManager.roomData.worldCenter;
+            p.x = Mathf.Clamp(p.x, c.x - 7f + margin, c.x + 7f - margin);
+            p.y = Mathf.Clamp(p.y, c.y - 5f + margin, c.y + 5f - margin);
+        }
+        return p;
+    }
+
+    // Сдвиг с учётом стен. true - упёрлись в границу комнаты
+    public bool MoveBy(Vector2 delta, bool faceMove = false)
+    {
+        Vector2 target = (Vector2)transform.position + delta;
+        Vector2 clamped = ClampToRoom(target);
+        transform.position = clamped;
+        if (spriteRenderer != null && player != null)
+            spriteRenderer.flipX = faceMove ? delta.x < 0 : player.position.x < transform.position.x;
+        return (clamped - target).sqrMagnitude > 0.0001f;
+    }
+
+    public void RestoreColor()
+    {
+        if (spriteRenderer != null) spriteRenderer.color = originalColor;
+    }
+
+    public Color BaseColor { get { return originalColor; } }
+
+    public void RefreshHealthBar()
+    {
+        if (healthBarFill == null) return;
+        float ratio = Mathf.Clamp01((float)currentHealth / maxHealth);
+        healthBarFill.transform.localScale = new Vector3(ratio, 1f, 1f);
+        healthBarFill.transform.localPosition = new Vector3(-(1f - ratio) * 0.4f, 0, 0);
+    }
+
+    // Пуля врага: цвет и вид зависят от типа
+    public GameObject FireBullet(Vector2 dir, int dmg, float speed = 15f, float size = 0.35f, BulletStyle? styleOverride = null, Color? colorOverride = null)
+    {
+        Color col = colorOverride ?? BulletColor();
+        BulletStyle st = styleOverride ?? BulletStyleFor();
+        return GameSetup.Instance.SpawnEnemyBullet(transform.position, dir, Mathf.Max(1, dmg), col, speed, size, st);
+    }
+
+    Color BulletColor()
+    {
+        switch (enemyType)
+        {
+            case "IceMage": return new Color(0.5f, 0.9f, 1f);
+            case "FireMage": case "FireElemental": case "Imp": case "Dragon": return new Color(1f, 0.55f, 0.1f);
+            case "NecroMage": case "Lich": case "Warlock": return new Color(0.7f, 0.3f, 1f);
+            case "Necromancer": case "Shaman": return new Color(0.4f, 1f, 0.4f);
+            case "StormMage": return new Color(1f, 1f, 0.4f);
+            case "Wraith": case "Shadow": case "Nightmare": return new Color(0.45f, 0.35f, 0.8f);
+            case "Harpy": return new Color(1f, 0.6f, 0.85f);
+            case "Turret": case "Archer": case "Shooter": return new Color(1f, 0.8f, 0.3f);
+            case "Sentry": case "Blinker": return new Color(1f, 0.4f, 0.9f);
+            case "CrownedBoar": return new Color(1f, 0.6f, 0.2f);
+            default: return new Color(1f, 0.3f, 0.3f);
+        }
+    }
+
+    BulletStyle BulletStyleFor()
+    {
+        switch (enemyType)
+        {
+            case "IceMage": case "FireMage": case "NecroMage": case "Lich": case "Warlock": case "StormMage":
+            case "Wraith": case "Shadow": case "Nightmare": case "Harpy": case "Sentry": case "Blinker":
+            case "Shaman": case "Necromancer": case "Dragon": case "Mage": case "FireElemental":
+                return BulletStyle.Orb;
+            default: return BulletStyle.Round;
+        }
     }
 
     void CirclePlayer()
@@ -308,21 +421,21 @@ public class Enemy : MonoBehaviour
                 {
                     float angle = Mathf.Atan2(dir.y, dir.x) * Mathf.Rad2Deg + (i - 1) * 20f;
                     Vector2 fireDir = Quaternion.Euler(0, 0, angle - Mathf.Atan2(dir.y, dir.x) * Mathf.Rad2Deg) * dir;
-                    GameSetup.Instance.SpawnEnemyBullet(transform.position, fireDir, damage / 2);
+                    FireBullet(fireDir, damage / 2);
                 }
                 break;
             case "IceMage":
                 Vector2 iceDir = dir;
-                GameSetup.Instance.SpawnEnemyBullet(transform.position, iceDir, damage / 3);
-                GameSetup.Instance.SpawnEnemyBullet(transform.position, Quaternion.Euler(0, 0, 15f) * iceDir, damage / 3);
-                GameSetup.Instance.SpawnEnemyBullet(transform.position, Quaternion.Euler(0, 0, -15f) * iceDir, damage / 3);
+                FireBullet(iceDir, damage / 3);
+                FireBullet(Quaternion.Euler(0, 0, 15f) * iceDir, damage / 3);
+                FireBullet(Quaternion.Euler(0, 0, -15f) * iceDir, damage / 3);
                 break;
             case "StormMage":
                 for (int i = 0; i < 7; i++)
                 {
                     float a = (360f / 7) * i * Mathf.Deg2Rad;
                     Vector2 stormDir = new Vector2(Mathf.Cos(a), Mathf.Sin(a));
-                    GameSetup.Instance.SpawnEnemyBullet(transform.position, stormDir, damage / 4);
+                    FireBullet(stormDir, damage / 4);
                 }
                 break;
             case "NecroMage":
@@ -331,7 +444,7 @@ public class Enemy : MonoBehaviour
                 {
                     float a = (360f / 5) * i * Mathf.Deg2Rad;
                     Vector2 ringDir = new Vector2(Mathf.Cos(a), Mathf.Sin(a));
-                    GameSetup.Instance.SpawnEnemyBullet(transform.position, ringDir, damage / 3);
+                    FireBullet(ringDir, damage / 3);
                 }
                 break;
             case "Warlock":
@@ -339,20 +452,20 @@ public class Enemy : MonoBehaviour
                 {
                     float spread = (i - 1) * 0.3f;
                     Vector2 warlockDir = Quaternion.Euler(0, 0, spread * Mathf.Rad2Deg) * dir;
-                    GameSetup.Instance.SpawnEnemyBullet(transform.position, warlockDir, damage / 2);
+                    FireBullet(warlockDir, damage / 2);
                 }
                 break;
             case "Wraith":
             case "Shadow":
                 Vector2 shadowDir = dir;
-                GameSetup.Instance.SpawnEnemyBullet(transform.position, shadowDir, damage);
+                FireBullet(shadowDir, damage);
                 break;
             case "Nightmare":
                 for (int i = 0; i < 4; i++)
                 {
                     float a = (360f / 4) * i * Mathf.Deg2Rad + Time.time;
                     Vector2 nightmareDir = new Vector2(Mathf.Cos(a), Mathf.Sin(a));
-                    GameSetup.Instance.SpawnEnemyBullet(transform.position, nightmareDir, damage / 3);
+                    FireBullet(nightmareDir, damage / 3);
                 }
                 break;
             case "Harpy":
@@ -360,25 +473,28 @@ public class Enemy : MonoBehaviour
                 {
                     float spread = (i == 0 ? -0.2f : 0.2f);
                     Vector2 harpyDir = Quaternion.Euler(0, 0, spread * Mathf.Rad2Deg) * dir;
-                    GameSetup.Instance.SpawnEnemyBullet(transform.position, harpyDir, damage / 2);
+                    FireBullet(harpyDir, damage / 2);
                 }
                 break;
             case "Archer":
-                GameSetup.Instance.SpawnEnemyBullet(transform.position, dir, damage / 2);
+                FireBullet(dir, damage / 2);
                 break;
             default:
                 for (int i = 0; i < projectilesPerShot; i++)
                 {
                     float spread = Random.Range(-0.2f, 0.2f);
                     Vector2 shootDir = Quaternion.Euler(0, 0, spread) * dir;
-                    GameSetup.Instance.SpawnEnemyBullet(transform.position, shootDir, damage / 2);
+                    FireBullet(shootDir, damage / 2);
                 }
                 break;
         }
     }
 
-    public void TakeDamage(int dmg)
+    public void TakeDamage(int dmg, Vector2 hitDir = default(Vector2))
     {
+        if (spawnTimer > 0f) return;
+        if (ability != null) dmg = ability.ModifyDamage(dmg, hitDir);
+
         currentHealth -= dmg;
 
         if (spriteRenderer != null)
@@ -387,15 +503,16 @@ public class Enemy : MonoBehaviour
             Invoke("ResetColor", 0.1f);
         }
 
-        Vector2 knockback = ((Vector2)transform.position - (PlayerController.Instance != null ? (Vector2)PlayerController.Instance.transform.position : Vector2.zero)).normalized * 2f;
-        transform.position += (Vector3)knockback;
-
-        if (healthBarFill != null)
+        if (!noKnockback)
         {
-            float ratio = (float)currentHealth / maxHealth;
-            healthBarFill.transform.localScale = new Vector3(ratio, 1f, 1f);
-            healthBarFill.transform.localPosition = new Vector3(-(1f - ratio) * 0.4f, 0, 0);
+            Vector2 kbDir = hitDir.sqrMagnitude > 0.01f
+                ? hitDir.normalized
+                : ((Vector2)transform.position - (PlayerController.Instance != null ? (Vector2)PlayerController.Instance.transform.position : Vector2.zero)).normalized;
+            float kbDist = enemyScale >= 1.3f ? 0.15f : 0.45f;
+            transform.position = ClampToRoom((Vector2)transform.position + kbDir * kbDist);
         }
+
+        RefreshHealthBar();
 
         if (EffectsManager.Instance != null)
             EffectsManager.Instance.SpawnHitEffect(transform.position);
@@ -456,6 +573,9 @@ public class Enemy : MonoBehaviour
 
         bool isBoss = GetComponent<Boss>() != null;
 
+        if (ability != null)
+            ability.OnDeath();
+
         if (explodeOnDeath)
             Explode();
 
@@ -471,13 +591,24 @@ public class Enemy : MonoBehaviour
         {
             if (AudioManager.Instance != null)
                 AudioManager.Instance.PlayDeathSound();
+
+            DungeonGenerator gen = DungeonGenerator.Instance;
+            bool lastFloor = gen == null || gen.GetFloor() >= DungeonGenerator.MaxFloors;
+
             if (ProceduralMusic.Instance != null)
             {
                 ProceduralMusic.Instance.PlaySFX("bossDeath");
-                ProceduralMusic.Instance.StartVictoryMusic();
+                if (lastFloor) ProceduralMusic.Instance.StartVictoryMusic();
+                else ProceduralMusic.Instance.SetBossMode(false);
             }
-            if (GameOverUI.Instance != null)
-                GameOverUI.Instance.ShowWin();
+
+            if (lastFloor)
+            {
+                if (GameOverUI.Instance != null)
+                    GameOverUI.Instance.ShowWin();
+            }
+            else
+                gen.SpawnPortal(transform.position);
         }
 
         Destroy(gameObject);

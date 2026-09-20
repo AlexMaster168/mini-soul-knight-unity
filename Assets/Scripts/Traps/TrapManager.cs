@@ -9,7 +9,7 @@ public class TrapManager : MonoBehaviour
         Instance = this;
     }
 
-    public void SpawnRoomTraps(Vector3 roomCenter, float roomW, float roomH, bool isBossRoom)
+    public void SpawnRoomTraps(Vector3 roomCenter, float roomW, float roomH, bool isBossRoom, Transform parent = null)
     {
         int trapCount = Random.Range(0, 2);
         if (isBossRoom) trapCount = 0;
@@ -25,14 +25,15 @@ public class TrapManager : MonoBehaviour
                 0
             );
 
-            SpawnSpikeTrap(pos);
+            SpawnSpikeTrap(pos, parent);
         }
     }
 
-    void SpawnSpikeTrap(Vector3 pos)
+    void SpawnSpikeTrap(Vector3 pos, Transform parent)
     {
         GameObject trap = new GameObject("SpikeTrap");
         trap.transform.position = pos;
+        if (parent != null) trap.transform.SetParent(parent);
 
         SpriteRenderer sr = trap.AddComponent<SpriteRenderer>();
         sr.sprite = SpriteGenerator.CreateSpikeTrap(16);

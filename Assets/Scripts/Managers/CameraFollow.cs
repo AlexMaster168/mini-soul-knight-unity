@@ -6,6 +6,11 @@ public class CameraFollow : MonoBehaviour
     public float smoothSpeed = 8f;
     public Vector3 offset = new Vector3(0, 0, -10);
 
+    // камера держится за центр комнаты и лишь слегка тянется за игроком
+    public bool useFocus;
+    public Vector2 focus;
+    public float focusFollow = 0.3f;
+
     private float minX = -100f;
     private float maxX = 100f;
     private float minY = -100f;
@@ -16,6 +21,11 @@ public class CameraFollow : MonoBehaviour
         if (target == null) return;
 
         Vector3 desiredPosition = target.position + offset;
+        if (useFocus)
+        {
+            desiredPosition.x = Mathf.Lerp(focus.x, target.position.x, focusFollow);
+            desiredPosition.y = Mathf.Lerp(focus.y, target.position.y, focusFollow);
+        }
         desiredPosition.x = Mathf.Clamp(desiredPosition.x, minX, maxX);
         desiredPosition.y = Mathf.Clamp(desiredPosition.y, minY, maxY);
         transform.position = Vector3.Lerp(transform.position, desiredPosition, smoothSpeed * Time.deltaTime);

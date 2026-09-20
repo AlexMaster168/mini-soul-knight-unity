@@ -6,6 +6,9 @@ public class TorchFlicker : MonoBehaviour
     private float timer;
     private Vector3 originalScale;
 
+    public Color tint = new Color(1f, 0.5f, 0.05f, 0.9f);
+    public float roomAlpha = 1f; // затемнение комнаты (задаёт DungeonGenerator)
+
     void Start()
     {
         sr = GetComponent<SpriteRenderer>();
@@ -20,7 +23,7 @@ public class TorchFlicker : MonoBehaviour
         if (sr != null)
         {
             float flicker = 0.7f + Mathf.Sin(timer) * 0.15f + Mathf.Sin(timer * 2.7f) * 0.1f;
-            sr.color = new Color(1f, 0.5f * flicker, 0.05f, 0.9f * flicker);
+            sr.color = new Color(tint.r, tint.g * flicker, tint.b, tint.a * flicker * roomAlpha);
         }
 
         float scaleX = originalScale.x * (0.9f + Mathf.Sin(timer * 1.5f) * 0.1f);

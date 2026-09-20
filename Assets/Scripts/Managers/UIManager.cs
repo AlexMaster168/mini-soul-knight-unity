@@ -292,7 +292,7 @@ public class UIManager : MonoBehaviour
         }
 
         if (DungeonGenerator.Instance != null)
-            levelText.text = "Floor " + DungeonGenerator.Instance.GetFloor();
+            levelText.text = "Floor " + DungeonGenerator.Instance.GetFloor() + " / " + DungeonGenerator.MaxFloors;
 
         if (ScoreManager.Instance != null)
             scoreText.text = "Score: " + ScoreManager.Instance.GetScore();

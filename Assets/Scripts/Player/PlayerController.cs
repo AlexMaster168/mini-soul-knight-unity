@@ -44,6 +44,10 @@ public class PlayerController : MonoBehaviour
     private float invincibilityTimer;
     private GameObject crosshair;
 
+    [HideInInspector] public WeaponData weaponData;
+    [HideInInspector] public WeaponProfile weaponProfile;
+    [HideInInspector] public string weaponName;
+
     void Awake()
     {
         Instance = this;
@@ -77,6 +81,12 @@ public class PlayerController : MonoBehaviour
 
     void Update()
     {
+        if (DungeonGenerator.Instance != null && DungeonGenerator.Instance.IsTransitioning)
+        {
+            movement = Vector2.zero;
+            return;
+        }
+
         if (isDashing)
         {
             dashTimer -= Time.deltaTime;
@@ -193,9 +203,6 @@ public class PlayerController : MonoBehaviour
         if (AudioManager.Instance != null)
             AudioManager.Instance.PlayShootSound();
 
-        if (PostProcessEffect.Instance != null)
-            PostProcessEffect.Instance.TriggerScreenShake(0.03f, 0.05f);
-
         attackTimer = attackCooldown;
         currentEnergy -= energyCost;
 
@@ -208,53 +215,62 @@ public class PlayerController : MonoBehaviour
         if (shootBack)
             shootDir = -shootDir;
 
+        bool melee = weaponProfile != null && weaponProfile.cls == WeaponClass.Melee;
+        if (!melee && !shootBack)
+            shootDir = ApplyAimAssist(shootDir);
+
         if (WeaponAnimator.Instance != null)
             WeaponAnimator.Instance.PlayShootEffect(shootDir);
 
-        for (int i = 0; i < projectilesPerShot; i++)
+        if (weaponData == null || weaponProfile == null)
         {
-            float spread = Random.Range(-0.15f, 0.15f);
-            Vector2 dir = Quaternion.Euler(0, 0, spread) * shootDir;
-            SpawnPlayerBullet(dir);
+            SpawnLegacyBullet(shootDir);
+            return;
         }
 
-        Vector2 nearestEnemyDir = FindNearestEnemyDir();
-        if (nearestEnemyDir != Vector2.zero && !shootBack)
+        float spread = weaponData.spread * Mathf.Rad2Deg;
+        int n = Mathf.Max(1, projectilesPerShot);
+        float reach = melee ? 0.5f : 0.6f;
+
+        for (int i = 0; i < n; i++)
         {
-            for (int i = 0; i < Mathf.CeilToInt(projectilesPerShot * 0.5f); i++)
-            {
-                float spread = Random.Range(-0.1f, 0.1f);
-                Vector2 dir = Quaternion.Euler(0, 0, spread) * nearestEnemyDir;
-                SpawnPlayerBullet(dir);
-            }
+            float angle;
+            if (n == 1)
+                angle = Random.Range(-spread, spread) * 0.5f;
+            else
+                angle = Mathf.Lerp(-spread, spread, n == 1 ? 0.5f : (float)i / (n - 1)) + Random.Range(-spread, spread) * 0.15f;
+
+            Vector2 dir = Quaternion.Euler(0, 0, angle) * shootDir;
+            Vector3 spawnPos = transform.position + (Vector3)(dir * reach);
+            GameSetup.Instance.SpawnPlayerBullet(spawnPos, dir, attackDamage, weaponData, weaponProfile);
         }
     }
 
-    void SpawnPlayerBullet(Vector2 dir)
+    void SpawnLegacyBullet(Vector2 dir)
     {
         Vector3 spawnPos = transform.position + (Vector3)(dir * 0.5f);
-        GameObject bullet = GameSetup.Instance.SpawnBullet(spawnPos, dir, attackDamage);
+        GameSetup.Instance.SpawnBullet(spawnPos, dir, attackDamage);
     }
 
-    Vector2 FindNearestEnemyDir()
+    // Лёгкий автоприцел: если враг почти на линии выстрела - довернуть на него
+    Vector2 ApplyAimAssist(Vector2 dir)
     {
         GameObject[] enemies = GameObject.FindGameObjectsWithTag("Enemy");
-        if (enemies.Length == 0) return Vector2.zero;
-
-        float minDist = float.MaxValue;
-        Vector2 closest = Vector2.zero;
+        float bestAngle = 9f;
+        Vector2 best = dir;
 
         foreach (GameObject enemy in enemies)
         {
-            float dist = Vector2.Distance(transform.position, enemy.transform.position);
-            if (dist < minDist && dist < 15f)
+            Vector2 to = (Vector2)enemy.transform.position - (Vector2)transform.position;
+            if (to.magnitude > 16f) continue;
+            float ang = Vector2.Angle(dir, to);
+            if (ang < bestAngle)
             {
-                minDist = dist;
-                closest = ((Vector2)enemy.transform.position - (Vector2)transform.position).normalized;
+                bestAngle = ang;
+                best = to.normalized;
             }
         }
-
-        return closest;
+        return best;
     }
 
     public void TakeDamage(int damage)
@@ -311,6 +327,9 @@ public class PlayerController : MonoBehaviour
     {
         if (!GameData.Weapons.ContainsKey(weaponName)) return;
         WeaponData data = GameData.Weapons[weaponName];
+        this.weaponName = weaponName;
+        weaponData = data;
+        weaponProfile = WeaponProfile.Get(weaponName);
         attackDamage = data.damage;
         attackCooldown = data.fireRate;
         projectilesPerShot = data.projectiles;

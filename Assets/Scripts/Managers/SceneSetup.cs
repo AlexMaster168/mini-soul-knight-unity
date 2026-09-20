@@ -53,7 +53,7 @@ public class SceneSetup : MonoBehaviour
         weaponHolder.transform.localPosition = new Vector3(0.4f, 0.1f, 0);
 
         Camera.main.backgroundColor = new Color(0.15f, 0.13f, 0.1f);
-        Camera.main.orthographicSize = 14;
+        Camera.main.orthographicSize = 8.5f;
         Camera.main.transform.position = new Vector3(0, 0, -10);
         CameraFollow cf = Camera.main.gameObject.AddComponent<CameraFollow>();
         cf.target = player.transform;

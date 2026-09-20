@@ -1,91 +1,154 @@
 using UnityEngine;
 using System.Collections.Generic;
 
+// Бой в одной комнате: волны врагов, запирание дверей, открытие после победы
 public class RoomManager : MonoBehaviour
 {
     public DungeonGenerator.RoomData roomData;
     public int enemiesAlive = 0;
-    private bool enemiesSpawned;
-    private static bool transitioning;
 
-    public void SpawnEnemies(int floor)
+    private bool started;
+    private int wavesLeft;
+    private int floor = 1;
+    private bool waitingNextWave;
+    private float nextWaveTimer;
+
+    static readonly string[] floor1 =
     {
-        if (enemiesSpawned) return;
-        enemiesSpawned = true;
+        "Slime", "Slime", "Goblin", "Goblin", "Bat", "Spider", "Imp", "Skeleton", "Zombie", "Wolf",
+        "Snake", "Shooter", "BigSlime", "Charger", "Turret"
+    };
+    static readonly string[] floor2 =
+    {
+        "Skeleton", "Wolf", "Archer", "Zombie", "Shaman", "ShieldKnight", "Blinker", "Sentry", "Bomber",
+        "IceMage", "Speedster", "Werewolf", "Mortar", "Charger", "Ghost", "Orc", "Turret", "BigSlime",
+        "Harpy", "Ninja", "Spider", "Snake", "Mage"
+    };
+    static readonly string[] floor3 =
+    {
+        "DarkKnight", "FireMage", "NecroMage", "Golem", "Tank", "Ninja", "Mortar", "Marksman", "StormMage",
+        "Wraith", "Warlock", "Lich", "Abomination", "LivingBomb", "Guardian", "Nightmare", "Berserker",
+        "Troll", "Sentry", "Blinker", "ShieldKnight", "Shaman", "CrystalGolem", "FireElemental", "Assassin",
+        "Charger", "Turret", "Shadow"
+    };
 
-        int count;
+    static readonly string[] bossPerFloor = { "CrownedBoar", "Necromancer", "Dragon" };
+
+    public bool IsStarted { get { return started; } }
+
+    // Игрок зашёл в комнату
+    public void BeginEncounter(int currentFloor)
+    {
+        if (started || roomData.cleared) return;
+        started = true;
+        floor = currentFloor;
+
+        roomData.SetDoors(true);
+
         if (roomData.isBossRoom)
         {
-            SpawnBoss(floor);
+            wavesLeft = 0;
+            SpawnBoss();
             return;
         }
 
-        count = roomData.isStartRoom ? 2 : Mathf.Min(2 + floor * 2, 10);
+        if (floor <= 1) wavesLeft = Random.value < 0.3f ? 2 : 1;
+        else if (floor == 2) wavesLeft = Random.Range(1, 3);
+        else wavesLeft = Random.Range(2, 4);
 
-        string[] floor1 = { "Slime", "Goblin", "Bat", "Spider", "Imp" };
-        string[] floor2 = { "Slime", "Goblin", "Skeleton", "Wolf", "Bat", "Speedster", "Imp", "Werewolf" };
-        string[] floor3 = { "Skeleton", "Shooter", "Archer", "Ghost", "Zombie", "Spider", "Snake", "Lich", "Harpy" };
-        string[] floor4 = { "Shooter", "Mage", "DarkKnight", "Bomber", "Flyer", "Orc", "IceMage", "Warlock", "Assassin", "FireElemental" };
-        string[] floor5 = { "DarkKnight", "FireMage", "NecroMage", "Tank", "Guardian", "Spawner", "Golem", "StormMage", "Wraith", "Shadow", "Troll", "Nightmare" };
-        string[] floor6 = { "DarkKnight", "Lich", "StormMage", "Tank", "Guardian", "Golem", "Abomination", "CrystalGolem", "Berserker", "Werewolf", "LivingBomb", "Nightmare" };
+        SpawnWave();
+    }
 
-        string[] pool = floor <= 1 ? floor1 : floor == 2 ? floor2 : floor == 3 ? floor3 : floor == 4 ? floor4 : floor == 5 ? floor5 : floor6;
+    void SpawnWave()
+    {
+        waitingNextWave = false;
+        wavesLeft--;
 
-        enemiesAlive = count;
+        string[] pool = floor <= 1 ? floor1 : floor == 2 ? floor2 : floor3;
+        int count = 2 + floor + Random.Range(0, 2);
+
+        List<Vector2> used = new List<Vector2>();
+        int stationary = 0;
+        enemiesAlive += count;
+
         for (int i = 0; i < count; i++)
         {
-            float angle = (360f / count) * i * Mathf.Deg2Rad;
-            float dist = 2.5f + Random.Range(0f, 2f);
-            Vector2 pos = (Vector2)roomData.worldCenter + new Vector2(Mathf.Cos(angle) * dist, Mathf.Sin(angle) * dist);
             string type = pool[Random.Range(0, pool.Length)];
+            // не больше двух неподвижных стрелков в волне
+            bool isStatic = type == "Turret" || type == "Sentry" || type == "Mortar" || type == "Blinker";
+            if (isStatic && stationary >= 2) type = pool[0];
+            if (isStatic) stationary++;
+
+            Vector2 pos = FindSpawnPoint(used);
+            used.Add(pos);
             SpawnEnemy(pos, type, floor);
         }
     }
 
-    void SpawnBoss(int floor)
+    Vector2 FindSpawnPoint(List<Vector2> used)
     {
-        string[] bossTypes = { "CrownedBoar", "Dragon", "Necromancer" };
-        string type = bossTypes[Random.Range(0, bossTypes.Length)];
-        Vector2 pos = (Vector2)roomData.worldCenter + new Vector2(0, 2);
+        Vector2 center = roomData.worldCenter;
+        Vector2 playerPos = PlayerController.Instance != null ? (Vector2)PlayerController.Instance.transform.position : center;
+        Vector2 best = center;
+        float bestScore = -1f;
+
+        for (int attempt = 0; attempt < 14; attempt++)
+        {
+            Vector2 c = center + new Vector2(Random.Range(-5.6f, 5.6f), Random.Range(-3.6f, 3.6f));
+            float score = Vector2.Distance(c, playerPos);
+            foreach (Vector2 u in used)
+                if (Vector2.Distance(c, u) < 1.5f) score -= 3f;
+            if (score > bestScore) { bestScore = score; best = c; }
+            if (score >= 5f) break;
+        }
+        return best;
+    }
+
+    void SpawnBoss()
+    {
+        string type = bossPerFloor[Mathf.Clamp(floor - 1, 0, bossPerFloor.Length - 1)];
+        Vector2 pos = (Vector2)roomData.worldCenter + new Vector2(0, 1.5f);
         enemiesAlive = 1;
         SpawnEnemy(pos, type, floor);
+
+        FloorTransition.Get().Banner("BOSS", BossTitle(type), 2.2f);
+    }
+
+    static string BossTitle(string type)
+    {
+        switch (type)
+        {
+            case "CrownedBoar": return "The Crowned Boar";
+            case "Necromancer": return "The Necromancer";
+            case "Dragon": return "Ancient Dragon";
+            default: return type;
+        }
     }
 
     void Update()
     {
-        if (transitioning) return;
-
-        PlayerController player = PlayerController.Instance;
-        if (player == null) return;
-
-        DungeonGenerator gen = DungeonGenerator.Instance;
-        if (gen == null) return;
-
-        if (gen.GetCurrentRoom() != roomData) return;
-
-        float dist = Vector2.Distance(player.transform.position, roomData.worldCenter);
-        if (dist > 7f && roomData.cleared)
+        if (waitingNextWave)
         {
-            transitioning = true;
-            gen.FindAndEnterNearestRoom(player.transform.position);
-            StartCoroutine(ResetTransition());
+            nextWaveTimer -= Time.deltaTime;
+            if (nextWaveTimer <= 0f) SpawnWave();
         }
-    }
-
-    System.Collections.IEnumerator ResetTransition()
-    {
-        yield return new WaitForSeconds(0.3f);
-        transitioning = false;
     }
 
     public void EnemyDefeated()
     {
         enemiesAlive--;
-        if (enemiesAlive <= 0)
+        if (enemiesAlive > 0) return;
+
+        if (wavesLeft > 0)
         {
-            roomData.cleared = true;
-            DungeonGenerator.Instance.RoomCleared();
+            waitingNextWave = true;
+            nextWaveTimer = 1.2f;
+            return;
         }
+
+        roomData.cleared = true;
+        roomData.SetDoors(false);
+        DungeonGenerator.Instance.RoomCleared(roomData);
     }
 
     public void SpawnEnemy(Vector2 position, string type, int floor)
@@ -100,26 +163,37 @@ public class RoomManager : MonoBehaviour
         Rigidbody2D rb = enemy.AddComponent<Rigidbody2D>();
         rb.gravityScale = 0;
         rb.freezeRotation = true;
+        if (type == "Turret" || type == "Sentry" || type == "Blinker")
+            rb.bodyType = RigidbodyType2D.Kinematic;
 
         BoxCollider2D col = enemy.AddComponent<BoxCollider2D>();
         col.size = new Vector2(0.8f, 0.8f);
 
-        Enemy e = enemy.AddComponent<Enemy>();
-        e.roomManager = this;
-
         EnemyData data;
+        bool isBoss = GameData.Bosses.ContainsKey(type);
         if (GameData.Enemies.ContainsKey(type))
             data = GameData.Enemies[type];
-        else if (GameData.Bosses.ContainsKey(type))
+        else if (isBoss)
             data = GameData.Bosses[type];
         else
             data = GameData.Enemies["Slime"];
 
+        // способность нужно добавить до Enemy.Start
+        if (HasAbility(type))
+        {
+            EnemyAbility ab = enemy.AddComponent<EnemyAbility>();
+            ab.kind = type;
+        }
+
+        Enemy e = enemy.AddComponent<Enemy>();
+        e.roomManager = this;
+
+        float hpMul = isBoss ? 1f : 1f + 0.3f * (floor - 1);
         e.enemyType = type;
-        e.maxHealth = data.health + floor * 3;
+        e.maxHealth = Mathf.RoundToInt(data.health * hpMul);
         e.currentHealth = e.maxHealth;
         e.damage = data.damage + floor;
-        e.moveSpeed = data.speed + floor * 0.05f;
+        e.moveSpeed = data.speed + (data.speed > 0f ? floor * 0.05f : 0f);
         e.attackRange = data.attackRange;
         e.attackCooldown = data.attackCooldown;
         e.canShoot = data.canShoot;
@@ -133,7 +207,10 @@ public class RoomManager : MonoBehaviour
         e.enemyFloor = floor;
 
         enemy.transform.localScale = Vector3.one * data.scale;
-        sr.sprite = GetEnemySprite(type);
+
+        Color tint;
+        sr.sprite = PixelArt.Enemy(type, out tint);
+        sr.color = tint;
 
         GameObject shadow = new GameObject("Shadow");
         shadow.transform.SetParent(enemy.transform);
@@ -143,10 +220,21 @@ public class RoomManager : MonoBehaviour
         shadowSr.sortingOrder = -1;
         shadow.transform.localScale = new Vector3(1f, 0.35f, 1f);
 
-        if (GameData.Bosses.ContainsKey(type))
+        if (isBoss)
             enemy.AddComponent<Boss>();
 
         CreateEnemyHealthBar(enemy.transform, e);
+    }
+
+    static bool HasAbility(string type)
+    {
+        switch (type)
+        {
+            case "Turret": case "Sentry": case "Charger": case "BigSlime": case "Shaman": case "Blinker":
+            case "ShieldKnight": case "Mortar": case "Marksman": case "Ninja":
+                return true;
+            default: return false;
+        }
     }
 
     void CreateEnemyHealthBar(Transform parent, Enemy e)
@@ -168,56 +256,5 @@ public class RoomManager : MonoBehaviour
         fillSr.sortingOrder = 21;
 
         e.healthBarFill = fillSr;
-    }
-
-    Sprite GetEnemySprite(string type)
-    {
-        switch (type)
-        {
-            case "Slime": return SpriteGenerator.CreateSlime(32, new Color(0.9f, 0.2f, 0.2f));
-            case "Goblin": return SpriteGenerator.CreateSlime(32, new Color(0.2f, 0.8f, 0.2f));
-            case "Skeleton": return SpriteGenerator.CreateSkeleton(32);
-            case "Zombie": return SpriteGenerator.CreateSlime(32, new Color(0.3f, 0.6f, 0.3f));
-            case "Wolf": return SpriteGenerator.CreateSlime(32, new Color(0.5f, 0.4f, 0.3f));
-            case "Bat": return SpriteGenerator.CreateFlyer(32);
-            case "DarkKnight": return SpriteGenerator.CreateDarkKnight(32);
-            case "Orc": return SpriteGenerator.CreateTank(32);
-            case "Golem": return SpriteGenerator.CreateTank(32);
-            case "Shooter": return SpriteGenerator.CreateShooter(32);
-            case "Mage": return SpriteGenerator.CreateMage(32);
-            case "Archer": return SpriteGenerator.CreateShooter(32);
-            case "IceMage": return SpriteGenerator.CreateMage(32);
-            case "FireMage": return SpriteGenerator.CreateMage(32);
-            case "NecroMage": return SpriteGenerator.CreateMage(32);
-            case "Ghost": return SpriteGenerator.CreateGhost(32);
-            case "Bomber": return SpriteGenerator.CreateBomber(32);
-            case "Tank": return SpriteGenerator.CreateTank(32);
-            case "Speedster": return SpriteGenerator.CreateSlime(32, new Color(0.2f, 0.8f, 0.9f));
-            case "Flyer": return SpriteGenerator.CreateFlyer(32);
-            case "Spider": return SpriteGenerator.CreateSlime(32, new Color(0.2f, 0.2f, 0.2f));
-            case "Snake": return SpriteGenerator.CreateSlime(32, new Color(0.4f, 0.7f, 0.1f));
-            case "Spawner": return SpriteGenerator.CreateBoss(48, new Color(0.6f, 0.2f, 0.6f));
-            case "Guardian": return SpriteGenerator.CreateDarkKnight(48);
-            case "Imp": return SpriteGenerator.CreateSlime(28, new Color(1f, 0.3f, 0.1f));
-            case "Werewolf": return SpriteGenerator.CreateSkeleton(32);
-            case "Berserker": return SpriteGenerator.CreateTank(32);
-            case "Lich": return SpriteGenerator.CreateMage(36);
-            case "Warlock": return SpriteGenerator.CreateMage(32);
-            case "StormMage": return SpriteGenerator.CreateMage(32);
-            case "Wraith": return SpriteGenerator.CreateGhost(32);
-            case "Assassin": return SpriteGenerator.CreateShooter(28);
-            case "Shadow": return SpriteGenerator.CreateGhost(32);
-            case "Troll": return SpriteGenerator.CreateTank(36);
-            case "Abomination": return SpriteGenerator.CreateTank(40);
-            case "CrystalGolem": return SpriteGenerator.CreateTank(44);
-            case "Harpy": return SpriteGenerator.CreateFlyer(32);
-            case "Nightmare": return SpriteGenerator.CreateBoss(36, new Color(0.3f, 0.1f, 0.4f));
-            case "FireElemental": return SpriteGenerator.CreateBomber(32);
-            case "LivingBomb": return SpriteGenerator.CreateBomber(24);
-            case "CrownedBoar": return SpriteGenerator.CreateBoss(64, new Color(0.8f, 0.4f, 0.1f));
-            case "Dragon": return SpriteGenerator.CreateBoss(64, new Color(0.8f, 0.1f, 0.1f));
-            case "Necromancer": return SpriteGenerator.CreateBoss(64, new Color(0.5f, 0.1f, 0.8f));
-            default: return SpriteGenerator.CreateSlime(32, new Color(0.9f, 0.2f, 0.2f));
-        }
     }
 }

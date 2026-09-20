@@ -5,9 +5,24 @@ public class WeaponAnimator : MonoBehaviour
     public static WeaponAnimator Instance;
 
     private Transform player;
-    private GameObject weaponVisual;
+    private Transform pivot;
+    private Transform weaponT;
     private SpriteRenderer weaponSr;
+    private SpriteRenderer glowSr;
     private string currentWeapon;
+    private WeaponProfile profile;
+
+    private Vector2 aimDir = Vector2.right;
+    private float kick, rise;
+    private float swingT = 1f, swingDur = 0.2f, swingSide = 1f;
+    private float equipT = 1f;
+    private float lastShot = -10f;
+    private float pumpTimer;
+    private float hideUntil;
+    private float glow;
+
+    const float HoldDist = 0.32f;
+    const float MuzzleDist = 1.0f;
 
     void Awake()
     {
@@ -18,82 +33,176 @@ public class WeaponAnimator : MonoBehaviour
     {
         player = PlayerController.Instance.transform;
         CreateWeaponVisual();
+        if (currentWeapon != null) ApplyWeapon();
     }
 
     void CreateWeaponVisual()
     {
-        weaponVisual = new GameObject("WeaponVisual");
-        weaponVisual.transform.SetParent(player);
-        weaponVisual.transform.localPosition = new Vector3(0.4f, 0.1f, 0);
-        weaponSr = weaponVisual.AddComponent<SpriteRenderer>();
+        pivot = new GameObject("WeaponPivot").transform;
+        pivot.SetParent(player, false);
+        pivot.localPosition = new Vector3(0, 0.05f, 0);
+
+        GameObject w = new GameObject("WeaponVisual");
+        weaponT = w.transform;
+        weaponT.SetParent(pivot, false);
+        weaponT.localPosition = new Vector3(HoldDist, 0, 0);
+        weaponSr = w.AddComponent<SpriteRenderer>();
         weaponSr.sortingOrder = 12;
+
+        GameObject g = new GameObject("MuzzleGlow");
+        g.transform.SetParent(weaponT, false);
+        glowSr = g.AddComponent<SpriteRenderer>();
+        glowSr.sprite = SpriteGenerator.CreateCircle(16, Color.white);
+        glowSr.sortingOrder = 13;
+        g.transform.localScale = Vector3.one * 0.35f;
+        glowSr.enabled = false;
     }
 
     public void SetWeapon(string weaponName)
     {
         currentWeapon = weaponName;
-        UpdateWeaponVisual();
+        if (weaponSr != null) ApplyWeapon();
     }
 
-    void UpdateWeaponVisual()
+    void ApplyWeapon()
     {
-        if (weaponSr == null) return;
+        profile = WeaponProfile.Get(currentWeapon);
+        weaponSr.sprite = PixelArt.Weapon(currentWeapon);
+        weaponSr.enabled = true;
+        hideUntil = 0f;
+        equipT = 0f;
+        kick = rise = 0f;
+        swingT = 1f;
 
-        if (currentWeapon == null)
+        bool energy = profile.cls == WeaponClass.Energy || profile.cls == WeaponClass.Exotic;
+        glowSr.enabled = energy;
+        if (energy)
         {
-            weaponSr.sprite = null;
-            return;
+            Color c = profile.color;
+            glowSr.color = new Color(c.r, c.g, c.b, 0.5f);
+            // кончик ствола в локальных координатах спрайта: (27-8)/20 юнитов
+            glowSr.transform.localPosition = new Vector3((27f - PixelArt.WeaponGripX) / 20f, 0, 0);
+        }
+    }
+
+    Vector2 Origin { get { return (Vector2)player.position + new Vector2(0, 0.05f); } }
+
+    void Update()
+    {
+        if (player == null || weaponT == null || profile == null) return;
+
+        Vector3 m3 = Input.mousePosition;
+        m3.z = Mathf.Abs(Camera.main.transform.position.z);
+        Vector2 mouse = Camera.main.ScreenToWorldPoint(m3);
+        Vector2 to = mouse - Origin;
+        if (to.sqrMagnitude > 0.01f) aimDir = to.normalized;
+
+        float angle = Mathf.Atan2(aimDir.y, aimDir.x) * Mathf.Rad2Deg;
+        bool left = aimDir.x < 0f;
+        float side = left ? -1f : 1f;
+        float dt = Time.deltaTime;
+
+        kick = Mathf.Lerp(kick, 0f, 1f - Mathf.Exp(-profile.recover * dt));
+        rise = Mathf.Lerp(rise, 0f, 1f - Mathf.Exp(-profile.recover * 0.7f * dt));
+
+        float swingAngle = 0f, swingReach = 0f, swingScale = 1f;
+        if (swingT < 1f)
+        {
+            swingT = Mathf.Min(1f, swingT + dt / swingDur);
+            float e = 1f - (1f - swingT) * (1f - swingT);
+            swingAngle = Mathf.Lerp(-95f, 95f, e) * swingSide * side;
+            swingReach = Mathf.Sin(swingT * Mathf.PI) * 0.4f;
+            swingScale = 1f + Mathf.Sin(swingT * Mathf.PI) * 0.25f;
         }
 
-        Vector2 mousePos = Camera.main.ScreenToWorldPoint(Input.mousePosition);
-        bool flip = mousePos.x < player.position.x;
-        weaponSr.flipX = flip;
+        float equipScale = 1f, equipSpin = 0f;
+        if (equipT < 1f)
+        {
+            equipT = Mathf.Min(1f, equipT + dt / 0.25f);
+            float k = equipT - 1f;
+            equipScale = 1f + 2.7f * k * k * k + 1.7f * k * k; // easeOutBack
+            equipSpin = (1f - equipT) * 360f * side;
+        }
 
-        if (IsMelee(currentWeapon))
-            weaponSr.sprite = SpriteGenerator.CreateSquare(8, new Color(0.7f, 0.7f, 0.75f));
-        else if (IsEnergy(currentWeapon))
-            weaponSr.sprite = SpriteGenerator.CreateSquare(8, new Color(0.3f, 0.6f, 1f));
-        else if (IsHeavy(currentWeapon))
-            weaponSr.sprite = SpriteGenerator.CreateSquare(10, new Color(0.4f, 0.4f, 0.45f));
-        else
-            weaponSr.sprite = SpriteGenerator.CreateSquare(8, new Color(0.5f, 0.5f, 0.55f));
+        pivot.position = Origin;
+        pivot.rotation = Quaternion.Euler(0, 0, angle + rise * side + swingAngle + equipSpin);
+
+        float bob = 0f;
+        if (Mathf.Abs(Input.GetAxisRaw("Horizontal")) + Mathf.Abs(Input.GetAxisRaw("Vertical")) > 0f)
+            bob = Mathf.Sin(Time.time * 14f) * 0.03f;
+
+        float pump = 0f;
+        if (pumpTimer > 0f)
+        {
+            pumpTimer -= dt;
+            float phase = 1f - pumpTimer / 0.5f;
+            if (phase > 0.4f && phase < 0.9f)
+                pump = -0.2f * Mathf.Sin((phase - 0.4f) / 0.5f * Mathf.PI);
+        }
+
+        float jitter = 0f;
+        if (currentWeapon == "Minigun" && Time.time - lastShot < 0.12f)
+            jitter = Random.Range(-0.04f, 0.04f);
+
+        weaponT.localPosition = new Vector3(HoldDist - kick + swingReach + pump, bob + jitter, 0);
+        float s = 0.7f * equipScale * swingScale;
+        weaponT.localScale = new Vector3(s, left ? -s : s, 1f);
+
+        if (hideUntil > 0f)
+        {
+            weaponSr.enabled = Time.time > hideUntil;
+            if (weaponSr.enabled) hideUntil = 0f;
+        }
+
+        if (glowSr.enabled)
+        {
+            glow = Mathf.Lerp(glow, 0f, 1f - Mathf.Exp(-8f * dt));
+            float pulse = 0.5f + Mathf.Sin(Time.time * 6f) * 0.15f + glow * 0.5f;
+            Color c = profile.color;
+            glowSr.color = new Color(c.r, c.g, c.b, Mathf.Clamp01(pulse));
+            glowSr.transform.localScale = Vector3.one * (0.35f + glow * 0.5f);
+        }
     }
 
     public void PlayShootEffect(Vector2 direction)
     {
-        if (currentWeapon == null) return;
+        if (currentWeapon == null || profile == null) return;
 
-        if (IsPistol(currentWeapon))
-            PistolEffect(direction);
-        else if (IsShotgun(currentWeapon))
-            ShotgunEffect(direction);
-        else if (IsSMG(currentWeapon))
-            SMGEffect(direction);
-        else if (IsRifle(currentWeapon))
-            RifleEffect(direction);
-        else if (IsSniper(currentWeapon))
-            SniperEffect(direction);
-        else if (IsEnergy(currentWeapon))
-            EnergyEffect(direction);
-        else if (IsHeavy(currentWeapon))
-            HeavyEffect(direction);
-        else if (IsExotic(currentWeapon))
-            ExoticEffect(direction);
-        else if (IsMelee(currentWeapon))
-            MeleeEffect(direction);
+        lastShot = Time.time;
+        kick = profile.kick;
+        rise = profile.rise;
+        glow = 1f;
 
-        UpdateWeaponVisual();
+        switch (profile.cls)
+        {
+            case WeaponClass.Pistol: PistolEffect(direction); break;
+            case WeaponClass.Shotgun: ShotgunEffect(direction); pumpTimer = 0.5f; break;
+            case WeaponClass.SMG: SMGEffect(direction); break;
+            case WeaponClass.Rifle: RifleEffect(direction); break;
+            case WeaponClass.Sniper: SniperEffect(direction); break;
+            case WeaponClass.Energy: EnergyEffect(direction); break;
+            case WeaponClass.Heavy: HeavyEffect(direction); break;
+            case WeaponClass.Exotic: ExoticEffect(direction); break;
+            case WeaponClass.Melee: MeleeEffect(direction); break;
+        }
+    }
+
+    void Shake(float intensity, float duration)
+    {
+        if (PostProcessEffect.Instance != null)
+            PostProcessEffect.Instance.TriggerScreenShake(intensity, duration);
     }
 
     void PistolEffect(Vector2 dir)
     {
         SpawnMuzzleFlash(dir, 0.15f, new Color(1f, 0.9f, 0.3f), 0.1f);
-        SpawnRecoilKick(dir, 0.15f);
-        if (currentWeapon == "DesertEagle")
+        SpawnShellCasing(dir);
+        Shake(0.03f, 0.05f);
+        if (currentWeapon == "DesertEagle" || currentWeapon == "Revolver")
         {
             SpawnMuzzleFlash(dir, 0.25f, new Color(1f, 0.7f, 0.1f), 0.12f);
-            if (PostProcessEffect.Instance != null)
-                PostProcessEffect.Instance.TriggerScreenShake(0.08f, 0.08f);
+            SpawnSmokePuff(dir);
+            Shake(0.08f, 0.08f);
         }
     }
 
@@ -106,9 +215,7 @@ public class WeaponAnimator : MonoBehaviour
             SpawnMuzzleFlash(flashDir, 0.2f, new Color(1f, 0.8f, 0.2f), 0.08f);
         }
         SpawnSmokePuff(dir);
-        SpawnRecoilKick(dir, 0.25f);
-        if (PostProcessEffect.Instance != null)
-            PostProcessEffect.Instance.TriggerScreenShake(0.1f, 0.1f);
+        Shake(0.1f, 0.1f);
     }
 
     void SMGEffect(Vector2 dir)
@@ -116,45 +223,49 @@ public class WeaponAnimator : MonoBehaviour
         float size = Random.Range(0.06f, 0.12f);
         SpawnMuzzleFlash(dir, size, new Color(1f, 0.95f, 0.5f), 0.05f);
         SpawnShellCasing(dir);
+        Shake(0.015f, 0.04f);
     }
 
     void RifleEffect(Vector2 dir)
     {
         SpawnMuzzleFlash(dir, 0.18f, new Color(1f, 0.85f, 0.2f), 0.08f);
         SpawnTracer(dir, 0.3f);
+        SpawnShellCasing(dir);
         if (currentWeapon == "AK")
         {
             SpawnSmokePuff(dir);
-            if (PostProcessEffect.Instance != null)
-                PostProcessEffect.Instance.TriggerScreenShake(0.06f, 0.06f);
+            Shake(0.06f, 0.06f);
         }
+        else
+            Shake(0.03f, 0.05f);
     }
 
     void SniperEffect(Vector2 dir)
     {
+        if (currentWeapon == "Crossbow")
+        {
+            SpawnTracer(dir, 0.4f);
+            return;
+        }
         SpawnMuzzleFlash(dir, 0.3f, new Color(1f, 0.9f, 0.4f), 0.15f);
         SpawnBeamTrail(dir, 1.5f);
         SpawnSmokePuff(dir);
-        if (PostProcessEffect.Instance != null)
-            PostProcessEffect.Instance.TriggerScreenShake(0.15f, 0.12f);
+        Shake(0.15f, 0.12f);
     }
 
     void EnergyEffect(Vector2 dir)
     {
-        Color energyColor = GetEnergyColor();
+        Color energyColor = profile.color;
         SpawnEnergyOrb(dir, energyColor);
         SpawnElectricSparks(dir, energyColor);
         SpawnMuzzleFlash(dir, 0.2f, energyColor, 0.12f);
+        if (currentWeapon == "Laser" || currentWeapon == "LaserRifle")
+            SpawnBeamTrail(dir, 1.2f);
+        Shake(0.02f, 0.05f);
     }
 
     void HeavyEffect(Vector2 dir)
     {
-        SpawnMuzzleFlash(dir, 0.35f, new Color(1f, 0.5f, 0.1f), 0.2f);
-        SpawnFireBurst(dir);
-        SpawnSmokePuff(dir);
-        if (PostProcessEffect.Instance != null)
-            PostProcessEffect.Instance.TriggerScreenShake(0.2f, 0.15f);
-
         if (currentWeapon == "Flamethrower")
         {
             for (int i = 0; i < 5; i++)
@@ -163,33 +274,77 @@ public class WeaponAnimator : MonoBehaviour
                 Vector2 fireDir = Quaternion.Euler(0, 0, angle * Mathf.Rad2Deg) * dir;
                 SpawnFireParticle(fireDir);
             }
+            return;
         }
+        if (currentWeapon == "Minigun")
+        {
+            SpawnMuzzleFlash(dir, 0.14f, new Color(1f, 0.9f, 0.4f), 0.04f);
+            SpawnShellCasing(dir);
+            Shake(0.04f, 0.04f);
+            return;
+        }
+
+        SpawnMuzzleFlash(dir, 0.35f, new Color(1f, 0.5f, 0.1f), 0.2f);
+        SpawnFireBurst(dir);
+        SpawnSmokePuff(dir);
+        if (currentWeapon == "Rocket")
+            for (int i = 0; i < 6; i++)   // задний выхлоп
+                SpawnSmokeAt(Origin - dir * 0.9f, -dir * Random.Range(1f, 3f) + Random.insideUnitCircle);
+        Shake(0.2f, 0.15f);
     }
 
     void ExoticEffect(Vector2 dir)
     {
+        if (currentWeapon == "Boomerang")
+        {
+            hideUntil = Time.time + 1.0f;
+            SpawnSwingArc(dir);
+            return;
+        }
         for (int i = 0; i < 8; i++)
         {
-            Vector2 sparkDir = Quaternion.Euler(0, 0, Random.Range(0f, 360f)) * Vector2.one;
+            Vector2 sparkDir = Quaternion.Euler(0, 0, Random.Range(0f, 360f)) * Vector2.right;
             SpawnSparkle(sparkDir);
         }
-        SpawnMuzzleFlash(dir, 0.2f, new Color(0.8f, 0.4f, 1f), 0.1f);
+        SpawnMuzzleFlash(dir, 0.2f, currentWeapon == "FairyGun" ? new Color(1f, 0.6f, 0.9f) : new Color(1f, 0.85f, 0.3f), 0.1f);
     }
 
     void MeleeEffect(Vector2 dir)
     {
-        SpawnSwingArc(dir);
-        if (currentWeapon == "Scythe" || currentWeapon == "Mace")
+        switch (currentWeapon)
         {
-            if (PostProcessEffect.Instance != null)
-                PostProcessEffect.Instance.TriggerScreenShake(0.1f, 0.08f);
+            case "Katana": swingDur = 0.13f; break;
+            case "Sword": swingDur = 0.18f; break;
+            case "Axe": swingDur = 0.22f; break;
+            case "Mace": swingDur = 0.28f; break;
+            case "Scythe": swingDur = 0.3f; break;
+            default: swingDur = 0.2f; break;
         }
+        swingT = 0f;
+        swingSide = -swingSide;
+        SpawnSwingArc(dir);
+        if (currentWeapon == "Scythe" || currentWeapon == "Mace" || currentWeapon == "Axe")
+            Shake(0.1f, 0.08f);
+    }
+
+    void SpawnSmokeAt(Vector2 pos, Vector2 vel)
+    {
+        GameObject smoke = new GameObject("Smoke");
+        smoke.transform.position = pos;
+        SpriteRenderer sr = smoke.AddComponent<SpriteRenderer>();
+        sr.sprite = SpriteGenerator.CreateCircle(12, new Color(0.6f, 0.6f, 0.6f, 0.5f));
+        sr.sortingOrder = 14;
+        smoke.transform.localScale = Vector3.one * 0.2f;
+        ParticleMover pm = smoke.AddComponent<ParticleMover>();
+        pm.velocity = vel;
+        pm.lifetime = 0.4f;
+        pm.shrink = true;
     }
 
     void SpawnMuzzleFlash(Vector2 dir, float size, Color color, float duration)
     {
         GameObject flash = new GameObject("MuzzleFlash");
-        flash.transform.position = (Vector2)player.position + dir * 0.6f;
+        flash.transform.position = Origin + dir * 1.0f;
         SpriteRenderer sr = flash.AddComponent<SpriteRenderer>();
         sr.sprite = SpriteGenerator.CreateCircle(8, color);
         sr.sortingOrder = 15;
@@ -202,17 +357,12 @@ public class WeaponAnimator : MonoBehaviour
         pm.shrink = true;
     }
 
-    void SpawnRecoilKick(Vector2 dir, float intensity)
-    {
-        player.position += (Vector3)(-dir * intensity * 0.3f);
-    }
-
     void SpawnSmokePuff(Vector2 dir)
     {
         for (int i = 0; i < 3; i++)
         {
             GameObject smoke = new GameObject("Smoke");
-            smoke.transform.position = (Vector2)player.position + dir * 0.5f + Random.insideUnitCircle * 0.2f;
+            smoke.transform.position = Origin + dir * 0.9f + Random.insideUnitCircle * 0.2f;
             SpriteRenderer sr = smoke.AddComponent<SpriteRenderer>();
             sr.sprite = SpriteGenerator.CreateCircle(12, new Color(0.5f, 0.5f, 0.5f, 0.4f));
             sr.sortingOrder = 14;
@@ -228,7 +378,7 @@ public class WeaponAnimator : MonoBehaviour
     void SpawnShellCasing(Vector2 dir)
     {
         GameObject shell = new GameObject("Shell");
-        shell.transform.position = (Vector2)player.position;
+        shell.transform.position = Origin;
         SpriteRenderer sr = shell.AddComponent<SpriteRenderer>();
         sr.sprite = SpriteGenerator.CreateSquare(4, new Color(0.8f, 0.7f, 0.2f));
         sr.sortingOrder = 13;
@@ -244,7 +394,7 @@ public class WeaponAnimator : MonoBehaviour
     void SpawnTracer(Vector2 dir, float length)
     {
         GameObject tracer = new GameObject("Tracer");
-        tracer.transform.position = (Vector2)player.position + dir * 0.5f;
+        tracer.transform.position = Origin + dir * 0.9f;
         SpriteRenderer sr = tracer.AddComponent<SpriteRenderer>();
         sr.sprite = SpriteGenerator.CreateSquare(4, new Color(1f, 1f, 0.5f, 0.8f));
         sr.sortingOrder = 14;
@@ -262,7 +412,7 @@ public class WeaponAnimator : MonoBehaviour
         for (int i = 0; i < 3; i++)
         {
             GameObject beam = new GameObject("Beam");
-            beam.transform.position = (Vector2)player.position + dir * (0.3f + i * 0.3f);
+            beam.transform.position = Origin + dir * (0.8f + i * 0.3f);
             SpriteRenderer sr = beam.AddComponent<SpriteRenderer>();
             sr.sprite = SpriteGenerator.CreateSquare(4, new Color(1f, 1f, 0.8f, 0.9f));
             sr.sortingOrder = 14;
@@ -279,7 +429,7 @@ public class WeaponAnimator : MonoBehaviour
     void SpawnEnergyOrb(Vector2 dir, Color color)
     {
         GameObject orb = new GameObject("EnergyOrb");
-        orb.transform.position = (Vector2)player.position + dir * 0.5f;
+        orb.transform.position = Origin + dir * 0.9f;
         SpriteRenderer sr = orb.AddComponent<SpriteRenderer>();
         sr.sprite = SpriteGenerator.CreateCircle(12, color);
         sr.sortingOrder = 15;
@@ -296,7 +446,7 @@ public class WeaponAnimator : MonoBehaviour
         for (int i = 0; i < 4; i++)
         {
             GameObject spark = new GameObject("Spark");
-            spark.transform.position = (Vector2)player.position + dir * 0.4f;
+            spark.transform.position = Origin + dir * 0.9f;
             SpriteRenderer sr = spark.AddComponent<SpriteRenderer>();
             sr.sprite = SpriteGenerator.CreateCircle(4, color);
             sr.sortingOrder = 15;
@@ -323,7 +473,7 @@ public class WeaponAnimator : MonoBehaviour
     void SpawnFireParticle(Vector2 dir)
     {
         GameObject fire = new GameObject("Fire");
-        fire.transform.position = (Vector2)player.position + dir * 0.5f;
+        fire.transform.position = Origin + dir * 0.9f;
         SpriteRenderer sr = fire.AddComponent<SpriteRenderer>();
         sr.sprite = SpriteGenerator.CreateCircle(8, new Color(1f, 0.5f, 0.05f, 0.9f));
         sr.sortingOrder = 15;
@@ -338,7 +488,7 @@ public class WeaponAnimator : MonoBehaviour
     void SpawnSparkle(Vector2 dir)
     {
         GameObject sparkle = new GameObject("Sparkle");
-        sparkle.transform.position = (Vector2)player.position + dir * Random.Range(0.3f, 0.8f);
+        sparkle.transform.position = Origin + dir * Random.Range(0.3f, 0.8f);
         SpriteRenderer sr = sparkle.AddComponent<SpriteRenderer>();
         sr.sprite = SpriteGenerator.CreateCircle(4, new Color(1f, 0.8f, 1f, 0.9f));
         sr.sortingOrder = 15;
@@ -358,7 +508,7 @@ public class WeaponAnimator : MonoBehaviour
             Vector2 arcDir = Quaternion.Euler(0, 0, angle) * dir;
 
             GameObject arc = new GameObject("SwingArc");
-            arc.transform.position = (Vector2)player.position + arcDir * 0.6f;
+            arc.transform.position = Origin + arcDir * 0.6f;
             SpriteRenderer sr = arc.AddComponent<SpriteRenderer>();
             sr.sprite = SpriteGenerator.CreateCircle(4, new Color(0.8f, 0.8f, 0.9f, 0.7f));
             sr.sortingOrder = 15;
@@ -371,39 +521,4 @@ public class WeaponAnimator : MonoBehaviour
         }
     }
 
-    Color GetEnergyColor()
-    {
-        switch (currentWeapon)
-        {
-            case "LaserRifle":
-            case "Laser": return new Color(0.3f, 0.8f, 1f);
-            case "Plasma": return new Color(0.5f, 0.2f, 1f);
-            case "Shock":
-            case "Thunder": return new Color(0.9f, 0.9f, 0.2f);
-            case "IceGun": return new Color(0.4f, 0.8f, 1f);
-            case "PoisonGun": return new Color(0.3f, 0.9f, 0.2f);
-            default: return Color.cyan;
-        }
-    }
-
-    bool IsPistol(string w) => w == "Pistol" || w == "Dual" || w == "Revolver" || w == "DesertEagle";
-    bool IsShotgun(string w) => w == "Shotgun" || w == "SuperShotgun" || w == "TacticalSG";
-    bool IsSMG(string w) => w == "Uzi" || w == "Mac10" || w == "Thompson";
-    bool IsRifle(string w) => w == "AK" || w == "LMG" || w == "M4" || w == "Famas";
-    bool IsSniper(string w) => w == "Sniper" || w == "AWP" || w == "Crossbow";
-    bool IsEnergy(string w) => w == "LaserRifle" || w == "Laser" || w == "Plasma" || w == "Shock" || w == "Thunder" || w == "IceGun" || w == "PoisonGun";
-    bool IsHeavy(string w) => w == "Rocket" || w == "Flamethrower" || w == "HolyGrenade" || w == "GrenadeLauncher" || w == "Minigun";
-    bool IsExotic(string w) => w == "Boomerang" || w == "Star Wand" || w == "FairyGun";
-    bool IsMelee(string w) => w == "Sword" || w == "Katana" || w == "Mace" || w == "Axe" || w == "Scythe";
-
-    void Update()
-    {
-        if (weaponVisual != null && player != null)
-        {
-            Vector2 mousePos = Camera.main.ScreenToWorldPoint(Input.mousePosition);
-            bool flip = mousePos.x < player.position.x;
-            if (weaponSr != null) weaponSr.flipX = flip;
-            weaponVisual.transform.localPosition = flip ? new Vector3(-0.4f, 0.1f, 0) : new Vector3(0.4f, 0.1f, 0);
-        }
-    }
 }

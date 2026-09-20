@@ -194,12 +194,25 @@ public static class GameData
         // NEW: Exploding variants
         { "FireElemental", new EnemyData("FireElemental", 35, 25, 3.5f, 1.5f, 1f, true, 8f, 1.2f, 3, true, 2.5f, false, 0.85f) },
         { "LivingBomb", new EnemyData("LivingBomb", 15, 50, 5f, 1f, 0.5f, false, 0f, 0f, 0, true, 4f, false, 0.7f) },
+
+        // NEW: уникальная механика (см. EnemyAbility)
+        { "Turret", new EnemyData("Turret", 70, 16, 0f, 0.5f, 3f, true, 13f, 2.2f, 3, false, 0f, false, 1.0f) },
+        { "Sentry", new EnemyData("Sentry", 60, 14, 0f, 0.5f, 3f, true, 15f, 1f, 1, false, 0f, false, 1.0f) },
+        { "Charger", new EnemyData("Charger", 90, 20, 3f, 1.3f, 1f, false, 0f, 0f, 0, false, 0f, false, 1.15f) },
+        { "BigSlime", new EnemyData("BigSlime", 110, 12, 2.5f, 1.4f, 1.2f, false, 0f, 0f, 0, false, 0f, false, 1.5f) },
+        { "MiniSlime", new EnemyData("MiniSlime", 18, 6, 4.5f, 1f, 0.8f, false, 0f, 0f, 0, false, 0f, false, 0.55f) },
+        { "Shaman", new EnemyData("Shaman", 45, 12, 2.6f, 1f, 2f, true, 11f, 2.2f, 1, false, 0f, false, 0.95f) },
+        { "Blinker", new EnemyData("Blinker", 40, 16, 0f, 1f, 2f, true, 14f, 2f, 5, false, 0f, false, 0.9f) },
+        { "ShieldKnight", new EnemyData("ShieldKnight", 130, 18, 2.3f, 1.5f, 1.4f, false, 0f, 0f, 0, false, 0f, false, 1.15f) },
+        { "Mortar", new EnemyData("Mortar", 55, 24, 1.6f, 1f, 3f, true, 14f, 3.2f, 1, false, 0f, false, 1.1f) },
+        { "Marksman", new EnemyData("Marksman", 40, 34, 2.2f, 1f, 3f, true, 16f, 3f, 1, false, 0f, false, 0.95f) },
+        { "Ninja", new EnemyData("Ninja", 45, 16, 5.5f, 1.3f, 0.9f, true, 10f, 2f, 3, false, 0f, false, 0.9f) },
     };
 
     public static Dictionary<string, EnemyData> Bosses = new Dictionary<string, EnemyData>
     {
-        { "CrownedBoar", new EnemyData("CrownedBoar", 800, 25, 2f, 2f, 1.5f, true, 12f, 1f, 5, false, 0f, false, 2.0f) },
-        { "Dragon", new EnemyData("Dragon", 1000, 30, 1.5f, 2f, 2f, true, 15f, 0.8f, 8, false, 0f, false, 2.5f) },
-        { "Necromancer", new EnemyData("Necromancer", 600, 20, 2f, 2f, 2f, true, 10f, 1.5f, 3, false, 0f, true, 2.0f) },
+        { "CrownedBoar", new EnemyData("CrownedBoar", 700, 25, 2f, 2f, 1.5f, true, 12f, 1f, 5, false, 0f, false, 2.0f) },
+        { "Dragon", new EnemyData("Dragon", 1500, 30, 1.5f, 2f, 2f, true, 15f, 0.8f, 8, false, 0f, false, 2.5f) },
+        { "Necromancer", new EnemyData("Necromancer", 1000, 20, 2f, 2f, 2f, true, 10f, 1.5f, 3, false, 0f, true, 2.0f) },
     };
 }
