@@ -31,6 +31,18 @@ public class PlayerController : MonoBehaviour
 
     [Header("Special")]
     public bool hasBossWeapon = false;
+    [HideInInspector] public float invulnerableUntil;
+    [HideInInspector] public float overdriveUntil;
+    [HideInInspector] public float ascendUntil;
+
+    // постоянные улучшения из магазина
+    [HideInInspector] public float damageMultiplier = 1f;
+    [HideInInspector] public float damageReduction = 0f;
+
+    public int EffectiveDamage
+    {
+        get { return Mathf.RoundToInt(attackDamage * damageMultiplier * (Time.time < ascendUntil ? 3f : 1f)); }
+    }
     public float bossWeaponCooldown = 0f;
 
     private Rigidbody2D rb;
@@ -98,7 +110,8 @@ public class PlayerController : MonoBehaviour
             return;
         }
 
-        bool shopOpen = ShopUI.Instance != null && ShopUI.Instance.IsOpen();
+        bool shopOpen = (ShopUI.Instance != null && ShopUI.Instance.IsOpen()) || (WeaponShopUI.Instance != null && WeaponShopUI.Instance.IsOpen())
+                       || (LobbyUI.Instance != null && LobbyUI.Instance.IsOpen());
         bool statsOpen = UIManager.Instance != null && UIManager.Instance.StatsVisible();
 
         if (!shopOpen && !statsOpen)
@@ -138,6 +151,10 @@ public class PlayerController : MonoBehaviour
         if (Input.GetKeyDown(KeyCode.Alpha3)) SwitchWeapon(2);
         if (Input.GetKeyDown(KeyCode.Alpha4)) SwitchWeapon(3);
         if (Input.GetKeyDown(KeyCode.Alpha5)) SwitchWeapon(4);
+        if (Input.GetKeyDown(KeyCode.Alpha6)) SwitchWeapon(5);
+        if (Input.GetKeyDown(KeyCode.Alpha7)) SwitchWeapon(6);
+        if (Input.GetKeyDown(KeyCode.Alpha8)) SwitchWeapon(7);
+        if (Input.GetKeyDown(KeyCode.Alpha9) && Inventory.Instance != null) Inventory.Instance.ToggleReserve(this);
 
         if (Input.GetKeyDown(KeyCode.Tab))
         {
@@ -150,6 +167,8 @@ public class PlayerController : MonoBehaviour
         invincibilityTimer -= Time.deltaTime;
 
         currentEnergy = Mathf.Min((int)(currentEnergy + energyRegenRate * Time.deltaTime), maxEnergy);
+        if (Inventory.Instance != null)
+            Inventory.Instance.UpdateReserve(this);
 
         Vector3 mouseFlip3D = Input.mousePosition;
         mouseFlip3D.z = Mathf.Abs(Camera.main.transform.position.z);
@@ -209,13 +228,13 @@ public class PlayerController : MonoBehaviour
     void Shoot(bool front, bool back)
     {
         int sides = (front ? 1 : 0) + (back ? 1 : 0);
-        int cost = energyCost * sides;
+        int cost = (Time.time < overdriveUntil || Time.time < ascendUntil) ? 0 : energyCost * sides;
         if (currentEnergy < cost) return;
 
         if (AudioManager.Instance != null)
             AudioManager.Instance.PlayShootSound();
 
-        attackTimer = attackCooldown;
+        attackTimer = Time.time < overdriveUntil ? attackCooldown * 0.6f : attackCooldown;
         currentEnergy -= cost;
 
         Vector3 mousePos3D = Input.mousePosition;
@@ -262,14 +281,14 @@ public class PlayerController : MonoBehaviour
 
             Vector2 dir = Quaternion.Euler(0, 0, angle) * shootDir;
             Vector3 spawnPos = transform.position + (Vector3)(dir * reach);
-            GameSetup.Instance.SpawnPlayerBullet(spawnPos, dir, attackDamage, weaponData, weaponProfile);
+            GameSetup.Instance.SpawnPlayerBullet(spawnPos, dir, EffectiveDamage, weaponData, weaponProfile);
         }
     }
 
     void SpawnLegacyBullet(Vector2 dir)
     {
         Vector3 spawnPos = transform.position + (Vector3)(dir * 0.5f);
-        GameSetup.Instance.SpawnBullet(spawnPos, dir, attackDamage);
+        GameSetup.Instance.SpawnBullet(spawnPos, dir, EffectiveDamage);
     }
 
     // Лёгкий автоприцел: если враг почти на линии выстрела - довернуть на него
@@ -295,7 +314,7 @@ public class PlayerController : MonoBehaviour
 
     public void TakeDamage(int damage)
     {
-        if (!enabled || invincibilityTimer > 0) return;
+        if (!enabled || invincibilityTimer > 0 || Time.time < invulnerableUntil || Time.time < ascendUntil) return;
 
         int actualDamage = damage;
         if (armor > 0)
@@ -305,6 +324,7 @@ public class PlayerController : MonoBehaviour
             actualDamage = damage - absorbed;
         }
 
+        actualDamage = Mathf.CeilToInt(actualDamage * (1f - damageReduction));
         currentHealth -= actualDamage;
         invincibilityTimer = 0.5f;
 

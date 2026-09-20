@@ -71,6 +71,17 @@ public class EnemyData
 
 public static class GameData
 {
+    public const string ReserveWeapon = "RustyBlade";
+
+    // все оружия, которые могут выпасть/продаваться (без запасного)
+    public static string[] LootableWeapons()
+    {
+        var list = new List<string>();
+        foreach (string k in Weapons.Keys)
+            if (k != ReserveWeapon) list.Add(k);
+        return list.ToArray();
+    }
+
     public static Dictionary<string, WeaponData> Weapons = new Dictionary<string, WeaponData>
     {
         // Pistols
@@ -127,6 +138,9 @@ public static class GameData
         { "Mace", new WeaponData("Mace", 70, 0.8f, 1, 0, 0f, 1.5f, 0f, true) },
         { "Axe", new WeaponData("Axe", 60, 0.6f, 1, 0, 0f, 1.3f, 0f, true) },
         { "Scythe", new WeaponData("Scythe", 85, 0.7f, 1, 0, 0f, 1.4f, 0f, true) },
+
+        // запасное оружие ближнего боя: выдаётся автоматически, когда кончилась энергия (в лут не попадает)
+        { "RustyBlade", new WeaponData("RustyBlade", 45, 0.35f, 1, 0, 0f, 1.2f, 0f, true) },
 
         // NEW
         { "GoldenGun", new WeaponData("GoldenGun", 38, 0.28f, 1, 7, 26f, 0.4f, 0.05f) },
@@ -220,6 +234,12 @@ public static class GameData
         { "ShieldKnight", new EnemyData("ShieldKnight", 130, 18, 2.3f, 1.5f, 1.4f, false, 0f, 0f, 0, false, 0f, false, 1.15f) },
         { "Mortar", new EnemyData("Mortar", 55, 24, 1.6f, 1f, 3f, true, 14f, 3.2f, 1, false, 0f, false, 1.1f) },
         { "Marksman", new EnemyData("Marksman", 40, 34, 2.2f, 1f, 3f, true, 16f, 3f, 1, false, 0f, false, 0.95f) },
+        // глубокие этажи (4-5)
+        { "Vortex", new EnemyData("Vortex", 70, 16, 0f, 1f, 2f, true, 12f, 2.4f, 8, false, 0f, false, 1.0f) },
+        { "Reaper", new EnemyData("Reaper", 90, 30, 4.2f, 1.5f, 1.2f, false, 0f, 0f, 0, false, 0f, false, 1.05f) },
+        { "Beamer", new EnemyData("Beamer", 80, 22, 0f, 1f, 3f, true, 14f, 4f, 1, false, 0f, false, 1.0f) },
+        { "Cultist", new EnemyData("Cultist", 60, 10, 2.4f, 1f, 2f, true, 10f, 2.5f, 1, false, 0f, false, 1.0f) },
+        { "Juggernaut", new EnemyData("Juggernaut", 300, 28, 1.6f, 1.6f, 2f, false, 0f, 0f, 0, false, 0f, false, 1.6f) },
         { "Ninja", new EnemyData("Ninja", 45, 16, 5.5f, 1.3f, 0.9f, true, 10f, 2f, 3, false, 0f, false, 0.9f) },
     };
 
@@ -227,6 +247,9 @@ public static class GameData
     {
         { "CrownedBoar", new EnemyData("CrownedBoar", 700, 25, 2f, 2f, 1.5f, true, 12f, 1f, 5, false, 0f, false, 2.0f) },
         { "Dragon", new EnemyData("Dragon", 1500, 30, 1.5f, 2f, 2f, true, 15f, 0.8f, 8, false, 0f, false, 2.5f) },
+        { "VoidEye", new EnemyData("VoidEye", 2200, 30, 1.6f, 2f, 1.5f, true, 14f, 1f, 8, false, 0f, true, 3.0f) },
+        { "GolemKing", new EnemyData("GolemKing", 900, 26, 1.4f, 2f, 2f, true, 12f, 1.2f, 6, false, 0f, false, 2.2f) },
+        { "SpiderQueen", new EnemyData("SpiderQueen", 650, 22, 3.2f, 2f, 1.2f, true, 11f, 1.4f, 4, false, 0f, true, 2.2f) },
         { "Necromancer", new EnemyData("Necromancer", 1000, 20, 2f, 2f, 2f, true, 10f, 1.5f, 3, false, 0f, true, 2.0f) },
     };
 }

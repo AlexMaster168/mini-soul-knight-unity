@@ -20,7 +20,7 @@ public class Boss : MonoBehaviour
 
     void Update()
     {
-        if (enemy == null || player == null || enemy.IsSpawning) return;
+        if (enemy == null || player == null || enemy.IsSpawning || enemy.IsFrozen) return;
 
         phaseTimer -= Time.deltaTime;
         specialTimer -= Time.deltaTime;

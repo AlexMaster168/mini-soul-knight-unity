@@ -4,10 +4,15 @@ using System.Collections.Generic;
 public class Inventory : MonoBehaviour
 {
     public static Inventory Instance;
-    public const int MaxSlots = 5;
+    public const int MaxSlots = 8;
 
     public List<string> weapons = new List<string>();
     public int currentWeaponIndex = 0;
+
+    // true - энергии нет, в руках запасное оружие ближнего боя
+    public bool reserveActive;
+    // клинок взят вручную (клавиша 9) - не убирается сам при восстановлении энергии
+    public bool reserveManual;
 
     public bool IsFull { get { return weapons.Count >= MaxSlots; } }
 
@@ -52,12 +57,70 @@ public class Inventory : MonoBehaviour
 
     public void EquipWeapon(int index)
     {
-        if (index >= 0 && index < weapons.Count)
+        if (index < 0 || index >= weapons.Count) return;
+
+        currentWeaponIndex = index;
+        PlayerController player = GetComponent<PlayerController>();
+        if (player == null) return;
+
+        // выбор другого оружия отменяет ручной клинок
+        if (reserveActive && reserveManual)
         {
-            currentWeaponIndex = index;
-            PlayerController player = GetComponent<PlayerController>();
-            if (player != null)
-                player.EquipWeapon(weapons[index]);
+            reserveActive = false;
+            reserveManual = false;
+        }
+
+        if (reserveActive)
+        {
+            // без энергии остаёмся с запасным клинком, если выбранное оружие требует энергию
+            WeaponData d = GameData.Weapons[weapons[index]];
+            if (d.energyCost > 0 && player.currentEnergy < ReserveExitEnergy(d.energyCost)) return;
+            reserveActive = false;
+        }
+        player.EquipWeapon(weapons[index]);
+    }
+
+    // Клавиша 9: взять клинок / вернуть основное оружие
+    public void ToggleReserve(PlayerController player)
+    {
+        if (weapons.Count == 0) return;
+
+        if (reserveActive)
+        {
+            reserveActive = false;
+            reserveManual = false;
+            player.EquipWeapon(weapons[currentWeaponIndex]); // если энергии нет - UpdateReserve снова выдаст клинок сам
+        }
+        else
+        {
+            reserveActive = true;
+            reserveManual = true;
+            player.EquipWeapon(GameData.ReserveWeapon);
+        }
+    }
+
+    static int ReserveExitEnergy(int cost) { return Mathf.Max(20, cost * 2); }
+
+    // Вызывается каждый кадр из PlayerController: выдаёт/убирает запасной клинок
+    public void UpdateReserve(PlayerController player)
+    {
+        if (weapons.Count == 0) return;
+        if (reserveActive && reserveManual) return;
+        WeaponData cur = GameData.Weapons[weapons[currentWeaponIndex]];
+
+        if (!reserveActive)
+        {
+            if (player.overdriveUntil > Time.time) return;
+            if (cur.energyCost > 0 && player.currentEnergy < cur.energyCost)
+            {
+                reserveActive = true;
+                player.EquipWeapon(GameData.ReserveWeapon);
+            }
+        }
+        else if (cur.energyCost == 0 || player.currentEnergy >= ReserveExitEnergy(cur.energyCost))
+        {
+            reserveActive = false;
+            player.EquipWeapon(weapons[currentWeaponIndex]);
         }
     }
 

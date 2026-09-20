@@ -136,7 +136,7 @@ public class UIManager : MonoBehaviour
         hintText.fontSize = 12;
         hintText.color = new Color(1f, 1f, 1f, 0.4f);
         hintText.alignment = TextAnchor.MiddleCenter;
-        hintText.text = "WASD Move | Click Shoot | Space Dash | 1-5 Weapons | E Shop | Tab Stats";
+        hintText.text = "WASD Move | Click Shoot | Space Dash | 1-8 Weapons | 9 Blade | Q Next | E Shop | Tab Stats";
 
         // === MINIMAP ===
         GameObject mmObj = CreatePanel(canvas.transform, "Minimap", new Vector2(1, 0), new Vector2(1, 0), new Vector2(-10, 35), new Vector2(MINIMAP_SIZE, MINIMAP_SIZE));
@@ -157,7 +157,7 @@ public class UIManager : MonoBehaviour
         borderRect.offsetMax = new Vector2(2, 2);
 
         // === STATS PANEL (Tab) ===
-        statsPanel = CreatePanel(canvas.transform, "StatsPanel", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0, -160), new Vector2(380, 480));
+        statsPanel = CreatePanel(canvas.transform, "StatsPanel", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(380, 440));
         Image statsBg = statsPanel.AddComponent<Image>();
         statsBg.color = new Color(0.05f, 0.05f, 0.1f, 0.92f);
         statsPanel.SetActive(false);
@@ -181,6 +181,12 @@ public class UIManager : MonoBehaviour
         titleText.alignment = TextAnchor.MiddleCenter;
         titleText.fontStyle = FontStyle.Bold;
         titleText.text = "PLAYER STATS";
+        RectTransform titleRt = statsTitle.GetComponent<RectTransform>();
+        titleRt.anchorMin = new Vector2(0, 1);
+        titleRt.anchorMax = new Vector2(1, 1);
+        titleRt.pivot = new Vector2(0.5f, 1);
+        titleRt.anchoredPosition = new Vector2(0, -12);
+        titleRt.sizeDelta = new Vector2(0, 35);
 
         GameObject statsContent = CreatePanel(statsPanel.transform, "Content", new Vector2(0, 0), new Vector2(1, 1), new Vector2(0, 10), new Vector2(-20, -55));
         statsText = statsContent.AddComponent<Text>();
@@ -189,6 +195,12 @@ public class UIManager : MonoBehaviour
         statsText.color = Color.white;
         statsText.alignment = TextAnchor.UpperLeft;
         statsText.supportRichText = true;
+        RectTransform contentRt = statsContent.GetComponent<RectTransform>();
+        contentRt.anchorMin = Vector2.zero;
+        contentRt.anchorMax = Vector2.one;
+        contentRt.pivot = new Vector2(0.5f, 0.5f);
+        contentRt.offsetMin = new Vector2(25, 15);
+        contentRt.offsetMax = new Vector2(-15, -55);
     }
 
     GameObject CreatePanel(Transform parent, string name, Vector2 anchorMin, Vector2 anchorMax, Vector2 anchoredPos, Vector2 size)
@@ -233,6 +245,8 @@ public class UIManager : MonoBehaviour
                 roomColor = new Color(0.2f, 0.95f, 0.3f, 1f);
             else if (room.isBossRoom)
                 roomColor = new Color(0.95f, 0.15f, 0.15f, 0.9f);
+            else if (room.isShopRoom)
+                roomColor = new Color(1f, 0.8f, 0.2f, 0.95f);
             else if (room.cleared)
                 roomColor = new Color(0.4f, 0.4f, 0.5f, 0.8f);
             else
@@ -288,11 +302,11 @@ public class UIManager : MonoBehaviour
 
             Inventory inv = PlayerController.Instance.GetComponent<Inventory>();
             if (inv != null && inv.weapons.Count > inv.currentWeaponIndex)
-                weaponText.text = inv.weapons[inv.currentWeaponIndex];
+                weaponText.text = inv.reserveActive ? GameData.ReserveWeapon : inv.weapons[inv.currentWeaponIndex];
         }
 
         if (DungeonGenerator.Instance != null)
-            levelText.text = "Floor " + DungeonGenerator.Instance.GetFloor() + " / " + DungeonGenerator.MaxFloors;
+            levelText.text = DungeonGenerator.Instance.IsLobby ? "Lobby" : "Floor " + DungeonGenerator.Instance.GetFloor() + " / " + DungeonGenerator.MaxFloors;
 
         if (ScoreManager.Instance != null)
             scoreText.text = "Score: " + ScoreManager.Instance.GetScore();
@@ -373,7 +387,7 @@ public class UIManager : MonoBehaviour
             "<color=#2196F3>Energy:</color>      " + Mathf.CeilToInt(p.currentEnergy) + " / " + p.maxEnergy + "\n" +
             "<color=#64B5F6>Armor:</color>       " + p.armor + " / " + p.maxArmor + "\n" +
             "\n" +
-            "<color=#FF9800>Damage:</color>      " + p.attackDamage + "\n" +
+            "<color=#FF9800>Damage:</color>      " + p.EffectiveDamage + "\n" +
             "<color=#FFC107>Fire Rate:</color>   " + p.attackCooldown.ToString("F2") + "s\n" +
             "<color=#FFEB3B>Projectiles:</color> " + p.projectilesPerShot + "\n" +
             "<color=#FFF176>Energy Cost:</color> " + p.energyCost + "\n" +

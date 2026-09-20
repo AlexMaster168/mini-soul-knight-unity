@@ -2,7 +2,7 @@ using UnityEngine;
 
 public class WeaponPickup : MonoBehaviour
 {
-    public string weaponName = "Pistol";
+    public string weaponName = "";
     public float enableTime;
 
     // подсказка "E - заменить" для HUD
@@ -19,9 +19,13 @@ public class WeaponPickup : MonoBehaviour
 
         if (string.IsNullOrEmpty(weaponName) || !GameData.Weapons.ContainsKey(weaponName))
         {
-            string[] keys = new string[GameData.Weapons.Count];
-            GameData.Weapons.Keys.CopyTo(keys, 0);
-            weaponName = keys[Random.Range(0, keys.Length)];
+            // случайное оружие, которого у игрока ещё нет (если такие остались)
+            string[] all = GameData.LootableWeapons();
+            Inventory inv = Inventory.Instance;
+            System.Collections.Generic.List<string> fresh = new System.Collections.Generic.List<string>();
+            foreach (string w in all)
+                if (inv == null || !inv.weapons.Contains(w)) fresh.Add(w);
+            weaponName = fresh.Count > 0 ? fresh[Random.Range(0, fresh.Count)] : all[Random.Range(0, all.Length)];
         }
 
         if (spriteRenderer != null)
@@ -37,11 +41,20 @@ public class WeaponPickup : MonoBehaviour
         transform.position = startPos + Vector3.up * Mathf.Sin(Time.time * 2f) * 0.15f;
 
         PlayerController player = PlayerController.Instance;
-        if (player == null || Time.time < enableTime) return;
-        if (Vector2.Distance(transform.position, player.transform.position) >= 1.2f) return;
-
+        if (player == null) return;
         Inventory inv = player.GetComponent<Inventory>();
         if (inv == null) return;
+
+        float dist = Vector2.Distance(transform.position, player.transform.position);
+        if (Time.time >= enableTime && dist < 2.8f)
+        {
+            string action = inv.weapons.Contains(weaponName)
+                ? "You already own this - picking it up gives 25 gold"
+                : (!inv.IsFull ? "Step closer to pick it up"
+                               : "[E] Swap with current weapon (" + inv.weapons[inv.currentWeaponIndex] + ")");
+            WeaponInfoUI.Request(weaponName, dist, action);
+        }
+        if (Time.time < enableTime || dist >= 1.2f) return;
 
         if (inv.weapons.Contains(weaponName))
         {
@@ -56,8 +69,7 @@ public class WeaponPickup : MonoBehaviour
         }
         else
         {
-            hintWeapon = weaponName;
-            hintTime = Time.time;
+            HudHint.Show("[E] swap current weapon for " + weaponName);
             if (Input.GetKeyDown(KeyCode.E) && inv.AddWeapon(weaponName, true))
                 Consume();
         }

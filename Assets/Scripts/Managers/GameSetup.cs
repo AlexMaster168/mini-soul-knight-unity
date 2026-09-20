@@ -64,6 +64,15 @@ public class GameSetup : MonoBehaviour
         return CreateBullet(position, direction, spec);
     }
 
+    public GameObject SpawnRobotBullet(Vector2 position, Vector2 direction, int damage, Color color, float speed, float size, BulletStyle style, bool pierce)
+    {
+        return CreateBullet(position, direction, new BulletSpec
+        {
+            damage = damage, speed = speed, size = size, lifetime = 1.6f, pierce = pierce,
+            style = style, color = color, enemy = false, trail = style == BulletStyle.Orb
+        });
+    }
+
     public GameObject SpawnBullet(Vector2 position, Vector2 direction, int damage)
     {
         return CreateBullet(position, direction, new BulletSpec

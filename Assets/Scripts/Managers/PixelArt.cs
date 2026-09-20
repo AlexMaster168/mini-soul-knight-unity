@@ -594,6 +594,199 @@ public static class PixelArt
         });
     }
 
+    // ================= ГЕРОИ (32x32, аниме-стиль): персонаж = дизайн, скин = цвета одежды =================
+
+    public static Sprite Hero(string kind, Color main, Color accent, bool female = false)
+    {
+        return Cached(Key("heroA" + kind + (female ? "F" : "M"), main) + ColorUtility.ToHtmlStringRGBA(accent), () =>
+        {
+            var c = new PixelCanvas(32, 32);
+            Color dark = Dk(main, 0.6f);
+            Color skin = new Color(1f, 0.88f, 0.78f);
+            Color hair, hairD, eye;
+            switch (kind)
+            {
+                case "Rogue": hair = female ? new Color(0.55f, 0.3f, 0.85f) : new Color(0.16f, 0.16f, 0.32f); eye = female ? new Color(1f, 0.8f, 0.2f) : new Color(1f, 0.25f, 0.3f); break;
+                case "Mage": hair = female ? new Color(1f, 0.6f, 0.8f) : new Color(0.9f, 0.93f, 1f); eye = female ? new Color(0.6f, 0.4f, 1f) : new Color(0.7f, 0.4f, 1f); break;
+                case "Tank": hair = female ? new Color(1f, 0.55f, 0.15f) : new Color(0.85f, 0.2f, 0.15f); eye = female ? new Color(0.3f, 0.85f, 0.4f) : new Color(1f, 0.7f, 0.15f); break;
+                case "Engineer": hair = female ? new Color(0.2f, 0.78f, 0.78f) : new Color(0.5f, 0.32f, 0.2f); eye = female ? new Color(1f, 0.6f, 0.2f) : new Color(0.3f, 0.85f, 0.4f); break;
+                default: hair = female ? new Color(1f, 0.85f, 0.4f) : new Color(0.62f, 0.36f, 0.18f); eye = new Color(0.3f, 0.6f, 1f); break;
+            }
+            hairD = Dk(hair, 0.7f);
+            bool longHair = female || kind == "Mage";
+
+            // --- задние волосы ---
+            c.Ell(16, 21.5f, 9.6f, 9f, hair);
+            if (longHair) { c.Rect(6, 6, 15, 20, hair); c.Rect(6, 6, 7, 12, hairD); }
+            if (kind == "Mage" && female) { c.Ell(5.5f, 15, 3.2f, 8f, hair); }
+            if (kind == "Engineer" && female) { c.Ell(5.5f, 22, 3f, 7f, hair); }
+            if (kind == "Tank" && female) { c.Rect(5, 5, 15, 18, hair); }
+
+            // --- тело ---
+            c.Rect(12, 1, 14, 5, female ? skin : dark);
+            c.Rect(11, 0, 14, 1, K);
+            c.Rect(11, 6, 15, 13, main);
+            c.Rect(11, 8, 15, 8, accent);
+            c.Rect(8, 7, 10, 12, main);
+            c.Rect(8, 6, 9, 7, skin);
+            if (female) { c.Rect(10, 3, 15, 8, main); c.Rect(10, 3, 15, 3, accent); c.Rect(12, 1, 14, 2, skin); c.Rect(11, 0, 14, 0, K); }
+
+            // --- голова ---
+            c.Ell(16, 21, 8.2f, 7.3f, skin);
+            c.Rect(14, 13, 15, 14, skin);
+
+            // --- глаза ---
+            c.Rect(11, 18, 13, 22, W);
+            c.Rect(11, 18, 13, 21, eye);
+            c.Rect(11, 21, 13, 21, Dk(eye, 0.5f));
+            c.Rect(12, 19, 12, 20, K);
+            c.Px(11, 21, W); c.Px(13, 18, new Color(1, 1, 1, 1));
+            c.Rect(10, 22, 13, 22, K); c.Px(10, 21, K); c.Px(10, 20, K);
+            c.Rect(10, 17, 11, 17, new Color(1f, 0.6f, 0.68f));
+            c.Px(15, 16, new Color(0.75f, 0.3f, 0.35f));
+
+            // --- чёлка ---
+            c.Ell(16, 26.5f, 9f, 4.3f, hair);
+            c.Tri(9, 26, 13, 26, 11, 22.5f, hair);
+            c.Tri(13, 27, 16, 27, 14.5f, 22.8f, hair);
+            c.Rect(8, 15, 9, 24, hair);
+            if (!longHair) c.Rect(8, 18, 8, 24, hair);
+            c.Line(11, 27, 14, 30, hairD, 1f);
+
+            // --- дизайн по классу ---
+            switch (kind)
+            {
+                case "Knight":
+                    c.Ell(8.5f, 13, 2.6f, 2f, accent);
+                    c.Rect(12, 9, 15, 12, accent);
+                    if (female) { c.Rect(10, 25, 15, 25, accent); c.Tri(9, 25, 4, 29, 9, 28, W); }
+                    else { c.Tri(9, 28, 13, 28, 10, 31.9f, hair); c.Tri(13, 29, 17, 29, 15, 31.9f, hair); c.Rect(9, 24, 15, 24, accent); }
+                    break;
+                case "Rogue":
+                    c.Rect(11, 13, 15, 14, accent);
+                    c.Ell(9, 12, 3.8f, 2.4f, dark);
+                    if (female) { c.Rect(10, 14, 15, 16, dark); c.Px(16, 16, dark); c.Rect(9, 24, 15, 24, accent); }
+                    else { c.Tri(8, 26, 3, 23, 8, 21, hair); c.Tri(9, 28, 6, 31, 12, 28, hair); }
+                    break;
+                case "Mage":
+                    c.Rect(10, 2, 15, 12, main);
+                    c.Rect(10, 2, 15, 2, accent);
+                    c.Rect(13, 6, 15, 6, accent);
+                    c.Ell(16, 27.5f, 11.5f, 2.1f, main);
+                    c.Tri(11, 28, 21, 28, 18, 31.9f, main);
+                    c.Rect(11, 27, 21, 27, accent);
+                    c.Px(16, 29, Y);
+                    break;
+                case "Tank":
+                    c.Rect(9, 6, 10, 13, main);
+                    c.Ell(8, 13, 3.3f, 2.8f, accent);
+                    c.Rect(10, 13, 15, 14, female ? Bone : accent);
+                    c.Rect(9, 24, 15, 24, accent);
+                    if (female) { c.Tri(9, 27, 6, 31.5f, 12, 28, Bone); }
+                    else { c.Tri(9, 28, 12, 28, 9, 31.9f, hair); c.Tri(12, 29, 16, 29, 14, 31.9f, hair); c.Line(10, 19, 10, 21, R, 1f); }
+                    break;
+                default: // Engineer
+                    c.Rect(6, 7, 8, 12, accent);
+                    c.Rect(9, 25, 15, 26, dark);
+                    c.Rect(10, 25, 12, 26, Cyan);
+                    c.Rect(9, 25, 9, 26, K);
+                    c.Rect(11, 8, 15, 8, Y);
+                    if (!female) { c.Tri(9, 28, 13, 28, 10, 31.5f, hair); c.Tri(13, 29, 17, 29, 15, 31.5f, hair); }
+                    break;
+            }
+
+            c.MirrorLeft();
+
+            // --- асимметрия справа ---
+            if (female && (kind == "Knight" || kind == "Rogue"))
+            {
+                c.Line(24, 25, 28, 17, hair, 3f);
+                c.Line(28, 17, 27, 10, hair, 2.4f);
+                c.Rect(24, 24, 25, 25, accent);
+            }
+            if (!female && kind == "Rogue") c.Line(20, 13, 25, 8, accent, 2f);
+            if (kind == "Tank" && !female) c.Rect(22, 18, 22, 20, R);
+            if (kind == "Mage" && !female) c.Line(22, 13, 26, 6, hair, 2f);
+            c.Outline(K);
+            return c.ToSprite();
+        });
+    }
+
+    public static Sprite Robot(Color a)
+    {
+        return Cached(Key("robot", a), () =>
+        {
+            var c = E(); Color b = Dk(a), l = Lt(a);
+            c.Tri(8, 5, 16, 5, 12, 1, O);
+            c.Ell(12, 10, 6.5f, 5.5f, a);
+            c.Ell(12, 10, 4f, 3f, l);
+            c.Ell(12, 16, 5f, 4f, S);
+            c.Rect(8, 15, 15, 17, K);
+            c.Rect(9, 16, 10, 16, Cyan); c.Rect(13, 16, 14, 16, Cyan);
+            c.Rect(12, 20, 12, 21, D); c.Px(12, 22, R);
+            c.Rect(17, 9, 22, 11, DD); c.Rect(22, 9, 22, 11, S);
+            c.Rect(2, 8, 5, 11, b);
+            c.Outline(K);
+            return c.ToSprite();
+        });
+    }
+
+    public static Sprite Vortex(Color a)
+    {
+        return Cached(Key("vortex", a), () =>
+        {
+            var c = E(); Color b = Dk(a), l = Lt(a);
+            c.Ring(12, 12, 9f, 11.2f, a);
+            c.Ring(12, 12, 6f, 8.2f, b);
+            c.Ring(12, 12, 3f, 4.8f, l);
+            c.Ell(12, 12, 2f, 2f, W);
+            c.Line(12, 12, 3, 20, a, 1.4f); c.Line(12, 12, 21, 4, a, 1.4f);
+            c.Px(3, 4, l); c.Px(20, 20, l); c.Px(2, 12, a); c.Px(21, 12, a);
+            c.Outline(K);
+            return c.ToSprite();
+        });
+    }
+
+    public static Sprite Reaper(Color a)
+    {
+        return Cached(Key("reaper", a), () =>
+        {
+            var c = E(); Color b = Dk(a);
+            c.Rect(5, 1, 11, 3, a); c.Rect(6, 4, 11, 9, a); c.Rect(7, 10, 11, 13, a);
+            c.Px(6, 1, K); c.Px(9, 1, K); c.Px(7, 2, K);
+            c.Ell(12, 16, 6f, 6f, b);
+            c.Ell(12, 15, 3.6f, 3.6f, K);
+            c.Rect(9, 15, 10, 16, R);
+            c.Rect(10, 12, 11, 12, Bone);
+            c.Rect(3, 8, 5, 11, b);
+            c.MirrorLeft();
+            c.Line(20, 1, 20, 20, Brown, 1.5f);
+            c.Tri(19f, 22.5f, 11f, 19.5f, 19f, 18.5f, S);
+            c.Outline(K);
+            return c.ToSprite();
+        });
+    }
+
+    public static Sprite Beamer(Color a)
+    {
+        return Cached(Key("beamer", a), () =>
+        {
+            var c = E(); Color b = Dk(a);
+            c.Line(9, 9, 4, 1, DD, 1.6f);
+            c.Rect(5, 0, 8, 1, D);
+            c.Rect(6, 9, 11, 17, D); c.Rect(6, 17, 11, 17, S);
+            c.Ell(12, 13, 5f, 5f, K);
+            c.Ell(12, 13, 3.6f, 3.6f, b);
+            c.Ell(12, 13, 2.4f, 2.4f, a);
+            c.Ell(12, 13, 1.1f, 1.1f, W);
+            c.Rect(11, 18, 11, 21, DD);
+            c.MirrorLeft();
+            c.Px(11, 22, R); c.Px(12, 22, R);
+            c.Outline(K);
+            return c.ToSprite();
+        });
+    }
+
     // ================= БОССЫ (32x32) =================
 
     public static Sprite Dragon()
@@ -773,6 +966,10 @@ public static class PixelArt
                 c.Rect(16, 3, 22, 9, D); c.Rect(21, 4, 24, 8, S); break;
             case "Scythe":
                 c.Rect(0, 5, 20, 6, Brown); c.Line(19, 6, 22, 10, D, 2); c.Line(22, 10, 27, 9, S, 2); c.Line(27, 9, 27, 4, S, 1.5f); c.Line(21, 10, 26, 8, W, 1); break;
+            case "RustyBlade":
+                c.Rect(3, 5, 7, 7, DBrown); c.Rect(8, 2, 9, 10, D); c.Rect(10, 5, 24, 8, new Color(0.62f, 0.4f, 0.28f));
+                c.Rect(10, 8, 24, 8, new Color(0.8f, 0.6f, 0.45f)); c.Tri(24, 5, 24, 8.5f, 27, 7, new Color(0.62f, 0.4f, 0.28f));
+                c.Px(14, 6, DBrown); c.Px(18, 7, DBrown); c.Px(21, 5, DBrown); break;
             case "GoldenGun": Pistol(c, new Color(1f, 0.8f, 0.25f), 13); c.Rect(8, 9, 18, 9, W); break;
             case "Vector":
                 c.Rect(6, 5, 19, 9, DD); c.Rect(19, 6, 24, 7, S); c.Rect(7, 0, 9, 5, D); c.Rect(12, 0, 13, 5, D); c.Rect(6, 10, 19, 10, R); break;
@@ -916,6 +1113,12 @@ public static class PixelArt
             case "Abomination": return Troll(new Color(0.6f, 0.5f, 0.65f));
             case "Golem": return Golem(new Color(0.55f, 0.5f, 0.45f), false);
             case "CrystalGolem": return Golem(new Color(0.35f, 0.5f, 0.8f), true);
+            case "Vortex": return Vortex(new Color(0.55f, 0.25f, 0.9f));
+            case "Reaper": return Reaper(new Color(0.2f, 0.2f, 0.28f));
+            case "Beamer": return Beamer(new Color(0.3f, 0.9f, 1f));
+            case "Cultist": return Shaman(new Color(0.65f, 0.15f, 0.2f));
+            case "Juggernaut": return Orc(new Color(0.5f, 0.52f, 0.62f));
+            case "VoidEye": return Blinker(new Color(0.55f, 0.2f, 1f));
             case "Turret": return Turret(new Color(0.55f, 0.58f, 0.66f));
             case "Sentry": return Sentry(new Color(0.65f, 0.3f, 0.9f));
             case "Charger": return Charger(new Color(0.55f, 0.36f, 0.24f));
@@ -950,6 +1153,8 @@ public static class PixelArt
             case "Spawner": return SpriteGenerator.CreateBoss(48, new Color(0.6f, 0.2f, 0.6f));
             case "Nightmare": return SpriteGenerator.CreateBoss(36, new Color(0.3f, 0.1f, 0.4f));
 
+            case "GolemKing": return Golem(new Color(0.42f, 0.42f, 0.55f), true);
+            case "SpiderQueen": return Spider(new Color(0.5f, 0.15f, 0.55f));
             case "CrownedBoar": return Charger(new Color(0.65f, 0.4f, 0.2f), true);
             case "Dragon": return Dragon();
             case "Necromancer": return Necromancer();

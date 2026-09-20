@@ -4,7 +4,7 @@ using System.Collections.Generic;
 public class DungeonGenerator : MonoBehaviour
 {
     public static DungeonGenerator Instance;
-    public const int MaxFloors = 3;
+    public const int MaxFloors = 5;
 
     public int gridWidth = 5;
     public int gridHeight = 5;
@@ -17,7 +17,11 @@ public class DungeonGenerator : MonoBehaviour
     private int floor = 1;
     private bool transitioning;
 
+    // боссы, которые уже были в этом забеге (чтобы не повторялись)
+    public List<string> usedBosses = new List<string>();
+
     public bool IsTransitioning { get { return transitioning; } }
+    public bool IsLobby { get; private set; }
 
     public class RoomData
     {
@@ -28,6 +32,7 @@ public class DungeonGenerator : MonoBehaviour
         public bool revealed;
         public bool isBossRoom;
         public bool isStartRoom;
+        public bool isShopRoom;
         public GameObject roomObject;
         public RoomManager roomManager;
         public List<Vector2Int> connections = new List<Vector2Int>();
@@ -58,6 +63,22 @@ public class DungeonGenerator : MonoBehaviour
                     wall = new Color(0.45f, 0.6f, 0.72f), background = new Color(0.06f, 0.09f, 0.13f),
                     doorGlow = new Color(0.4f, 0.8f, 1f), flame = new Color(0.4f, 0.8f, 1f, 0.9f)
                 };
+            case 4:
+                return new Theme
+                {
+                    name = "Sunken Abyss",
+                    floor = new Color(0.16f, 0.3f, 0.3f), line = new Color(0.1f, 0.22f, 0.22f), crack = new Color(0.08f, 0.35f, 0.25f),
+                    wall = new Color(0.3f, 0.6f, 0.55f), background = new Color(0.03f, 0.08f, 0.08f),
+                    doorGlow = new Color(0.3f, 1f, 0.6f), flame = new Color(0.4f, 1f, 0.6f, 0.9f)
+                };
+            case 5:
+                return new Theme
+                {
+                    name = "Void Sanctum",
+                    floor = new Color(0.2f, 0.15f, 0.3f), line = new Color(0.14f, 0.1f, 0.22f), crack = new Color(0.4f, 0.15f, 0.6f),
+                    wall = new Color(0.5f, 0.35f, 0.7f), background = new Color(0.05f, 0.02f, 0.09f),
+                    doorGlow = new Color(0.8f, 0.4f, 1f), flame = new Color(0.8f, 0.4f, 1f, 0.9f)
+                };
             case 3:
                 return new Theme
                 {
@@ -82,10 +103,34 @@ public class DungeonGenerator : MonoBehaviour
         Instance = this;
     }
 
+    // Игра начинается в лобби; забег стартует через портал
     void Start()
     {
-        GenerateFloor();
-        FloorTransition.Get().Banner("FLOOR 1", GetTheme(1).name, 2.8f);
+        IsLobby = true;
+        LobbyController.Build();
+    }
+
+    public void StartRun()
+    {
+        if (transitioning || !IsLobby) return;
+        transitioning = true;
+        floor = 1;
+        FloorTransition.Get().Play("FLOOR 1", GetTheme(1).name, () =>
+        {
+            LobbyController.Leave();
+            IsLobby = false;
+            MetaProgress.ApplyCharacter(PlayerController.Instance);
+            GenerateFloor();
+
+            PlayerController pc = PlayerController.Instance;
+            if (pc != null)
+            {
+                pc.transform.position = Vector3.zero;
+                pc.StopDash();
+            }
+            if (Camera.main != null)
+                Camera.main.transform.position = new Vector3(0, 0, -10);
+        }, () => transitioning = false);
     }
 
     // ================= ГЕНЕРАЦИЯ =================
@@ -110,6 +155,7 @@ public class DungeonGenerator : MonoBehaviour
 
         RoomData startRoom = rooms[start];
         startRoom.isStartRoom = true;
+        ChooseShopRooms();
 
         foreach (var kvp in rooms)
             CreateRoomVisual(kvp.Value, theme);
@@ -121,6 +167,7 @@ public class DungeonGenerator : MonoBehaviour
         foreach (var kvp in rooms)
             kvp.Value.revealed = false;
         Reveal(startRoom);
+        RevealNeighbors(startRoom);
         UpdateVisibility();
         FocusCamera(startRoom, true);
     }
@@ -130,7 +177,7 @@ public class DungeonGenerator : MonoBehaviour
         grid[start.x, start.y] = 1;
         rooms[start] = CreateRoomData(start);
 
-        int roomCount = 6 + floor * 2 + Random.Range(0, 3);
+        int roomCount = Mathf.Min(6 + floor * 2, 14) + Random.Range(0, 3);
         Vector2Int current = start;
 
         Vector2Int[] dirs = { Vector2Int.up, Vector2Int.down, Vector2Int.left, Vector2Int.right };
@@ -213,8 +260,51 @@ public class DungeonGenerator : MonoBehaviour
         CreateWalls(roomObj.transform, room.worldCenter, room, theme);
         CreateTorches(roomObj.transform, room.worldCenter, theme);
 
-        if (!room.isStartRoom && !room.isBossRoom && TrapManager.Instance != null)
+        if (room.isShopRoom)
+        {
+            room.cleared = true; // в комнате торговца боя нет
+            SpawnMerchant(roomObj.transform, room.worldCenter);
+        }
+
+        if (!room.isStartRoom && !room.isBossRoom && !room.isShopRoom && TrapManager.Instance != null)
             TrapManager.Instance.SpawnRoomTraps(room.worldCenter, roomInnerW, roomInnerH, room.isBossRoom, roomObj.transform);
+    }
+
+    // 1 комната торговца на этаже, на 2-3 этажах с шансом 50% - две
+    void ChooseShopRooms()
+    {
+        List<RoomData> candidates = new List<RoomData>();
+        foreach (var kvp in rooms)
+            if (!kvp.Value.isStartRoom && !kvp.Value.isBossRoom) candidates.Add(kvp.Value);
+
+        int count = floor == 1 ? 1 : (Random.value < 0.5f ? 2 : 1);
+        for (int i = 0; i < count && candidates.Count > 0; i++)
+        {
+            int k = Random.Range(0, candidates.Count);
+            candidates[k].isShopRoom = true;
+            candidates.RemoveAt(k);
+        }
+    }
+
+    void SpawnMerchant(Transform parent, Vector3 center)
+    {
+        GameObject glow = new GameObject("MerchantGlow");
+        glow.transform.SetParent(parent);
+        glow.transform.position = center + new Vector3(0, 0.5f, 0);
+        glow.transform.localScale = Vector3.one * 4.5f;
+        SpriteRenderer gsr = glow.AddComponent<SpriteRenderer>();
+        gsr.sprite = SpriteGenerator.CreateCircle(32, new Color(1f, 0.85f, 0.3f, 0.22f));
+        gsr.sortingOrder = 1;
+
+        GameObject m = new GameObject("WeaponMerchant");
+        m.transform.SetParent(parent);
+        m.transform.position = center + new Vector3(0, 1f, 0);
+        m.transform.localScale = Vector3.one * 1.4f;
+        SpriteRenderer sr = m.AddComponent<SpriteRenderer>();
+        sr.sprite = SpriteGenerator.CreateMerchant(32);
+        sr.color = new Color(0.75f, 0.9f, 1f);
+        sr.sortingOrder = 10;
+        m.AddComponent<WeaponMerchant>();
     }
 
     void CreateFloor(Transform parent, Vector3 center, Theme theme)
@@ -272,8 +362,8 @@ public class DungeonGenerator : MonoBehaviour
         detail.transform.localScale = Vector3.one * Random.Range(0.1f, 0.2f);
     }
 
-    // Проёмы: N/S - 4 тайла шириной, E/W - 2 тайла высотой (симметрично относительно центра комнаты)
-    bool IsGapX(int x) { return Mathf.Abs(x - (roomInnerW - 1) / 2f) <= 1.6f; }
+    // Двери: проём в 2 тайла (симметрично относительно центра комнаты)
+    bool IsGapX(int x) { return Mathf.Abs(x - (roomInnerW - 1) / 2f) <= 0.6f; }
     bool IsGapY(int y) { return Mathf.Abs(y - (roomInnerH - 1) / 2f) <= 0.6f; }
 
     void CreateWalls(Transform parent, Vector3 center, RoomData room, Theme theme)
@@ -281,6 +371,7 @@ public class DungeonGenerator : MonoBehaviour
         Sprite wallSprite = SpriteGenerator.CreateWall(32, theme.wall);
         Color wallColor = Color.Lerp(theme.wall, Color.white, 0.15f);
         Sprite doorSprite = PixelArt.DoorBars(theme.doorGlow);
+        Sprite doorFloor = SpriteGenerator.CreateTile(32, theme.floor * 0.8f, theme.line);
         float hw = roomInnerW / 2f;
         float hh = roomInnerH / 2f;
 
@@ -295,11 +386,11 @@ public class DungeonGenerator : MonoBehaviour
             bool gap = x >= 0 && x < roomInnerW && IsGapX(x);
 
             Vector3 top = new Vector3(wx, center.y + hh + 0.5f, 0);
-            if (hasNorth && gap) CreateDoor(parent, room, top, doorSprite, false);
+            if (hasNorth && gap) CreateDoor(parent, room, top, doorSprite, doorFloor, false);
             else CreateWallTile(parent, top, wallSprite, wallColor);
 
             Vector3 bottom = new Vector3(wx, center.y - hh - 0.5f, 0);
-            if (hasSouth && gap) CreateDoor(parent, room, bottom, doorSprite, false);
+            if (hasSouth && gap) CreateDoor(parent, room, bottom, doorSprite, doorFloor, false);
             else CreateWallTile(parent, bottom, wallSprite, wallColor);
         }
 
@@ -309,11 +400,11 @@ public class DungeonGenerator : MonoBehaviour
             bool gap = IsGapY(y);
 
             Vector3 left = new Vector3(center.x - hw - 0.5f, wy, 0);
-            if (hasWest && gap) CreateDoor(parent, room, left, doorSprite, true);
+            if (hasWest && gap) CreateDoor(parent, room, left, doorSprite, doorFloor, true);
             else CreateWallTile(parent, left, wallSprite, wallColor);
 
             Vector3 right = new Vector3(center.x + hw + 0.5f, wy, 0);
-            if (hasEast && gap) CreateDoor(parent, room, right, doorSprite, true);
+            if (hasEast && gap) CreateDoor(parent, room, right, doorSprite, doorFloor, true);
             else CreateWallTile(parent, right, wallSprite, wallColor);
         }
     }
@@ -332,8 +423,15 @@ public class DungeonGenerator : MonoBehaviour
         col.size = Vector2.one;
     }
 
-    void CreateDoor(Transform parent, RoomData room, Vector3 pos, Sprite sprite, bool vertical)
+    void CreateDoor(Transform parent, RoomData room, Vector3 pos, Sprite sprite, Sprite floorSprite, bool vertical)
     {
+        GameObject floorTile = new GameObject("DoorFloor");
+        floorTile.transform.SetParent(parent);
+        floorTile.transform.position = pos;
+        SpriteRenderer fsr = floorTile.AddComponent<SpriteRenderer>();
+        fsr.sprite = floorSprite;
+        fsr.sortingOrder = 0;
+
         GameObject door = new GameObject("Door");
         door.tag = "Wall";
         door.transform.SetParent(parent);
@@ -422,6 +520,12 @@ public class DungeonGenerator : MonoBehaviour
         room.revealed = true;
     }
 
+    void RevealNeighbors(RoomData room)
+    {
+        foreach (Vector2Int c in room.connections)
+            if (rooms.ContainsKey(c)) Reveal(rooms[c]);
+    }
+
     public void EnterRoom(Vector2Int direction)
     {
         Vector2Int nextPos = currentRoom.gridPos + direction;
@@ -435,6 +539,7 @@ public class DungeonGenerator : MonoBehaviour
         currentRoom = targetRoom;
         currentRoom.visited = true;
         Reveal(currentRoom);
+        RevealNeighbors(currentRoom);
         UpdateVisibility();
         FocusCamera(currentRoom, false);
 

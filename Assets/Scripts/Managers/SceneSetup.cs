@@ -38,6 +38,9 @@ public class SceneSetup : MonoBehaviour
 
         player.AddComponent<PlayerController>();
         player.AddComponent<Inventory>();
+        player.AddComponent<PlayerAbilities>();
+        player.AddComponent<PlayerUpgrades>();
+        player.AddComponent<PlayerRobots>();
         player.transform.localScale = Vector3.one * 1.2f;
 
         GameObject shadow = new GameObject("Shadow");
@@ -74,6 +77,10 @@ public class SceneSetup : MonoBehaviour
         CreateManager("TrapManager", typeof(TrapManager));
         CreateManager("WeaponAnimator", typeof(WeaponAnimator));
         CreateManager("WeaponSlotsUI", typeof(WeaponSlotsUI));
+        CreateManager("WeaponInfoUI", typeof(WeaponInfoUI));
+        CreateManager("WeaponShopUI", typeof(WeaponShopUI));
+        CreateManager("LobbyUI", typeof(LobbyUI));
+        CreateManager("Localizer", typeof(Localizer));
     }
 
     void CreateManager(string name, System.Type component)

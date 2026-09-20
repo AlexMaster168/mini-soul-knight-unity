@@ -85,7 +85,7 @@ public class GameOverUI : MonoBehaviour
         floorText.color = new Color(1f, 0.85f, 0.3f);
         floorText.alignment = TextAnchor.MiddleCenter;
         int floor = DungeonGenerator.Instance != null ? DungeonGenerator.Instance.GetFloor() : 1;
-        floorText.text = "Reached Floor " + floor;
+        floorText.text = "Reached Floor " + floor + "   (+" + MetaProgress.BankRun(false) + " crystals)";
         RectTransform floorRect = floorObj.GetComponent<RectTransform>();
         floorRect.anchorMin = new Vector2(0.5f, 0.45f);
         floorRect.anchorMax = new Vector2(0.5f, 0.45f);
@@ -171,7 +171,7 @@ public class GameOverUI : MonoBehaviour
         floorText.color = new Color(1f, 0.85f, 0.3f);
         floorText.alignment = TextAnchor.MiddleCenter;
         int floor = DungeonGenerator.Instance != null ? DungeonGenerator.Instance.GetFloor() : 1;
-        floorText.text = "Floor " + floor + " Complete!";
+        floorText.text = "Floor " + floor + " Complete!   (+" + MetaProgress.BankRun(true) + " crystals)";
         RectTransform floorRect = floorObj.GetComponent<RectTransform>();
         floorRect.anchorMin = new Vector2(0.5f, 0.4f);
         floorRect.anchorMax = new Vector2(0.5f, 0.4f);

@@ -29,6 +29,9 @@ public class EnemyAbility : MonoBehaviour
             case "Mortar":
             case "Blinker":
             case "ShieldKnight":
+            case "Beamer":
+            case "Vortex":
+            case "Juggernaut":
                 e.noKnockback = true;
                 break;
         }
@@ -57,6 +60,11 @@ public class EnemyAbility : MonoBehaviour
             case "Mortar": TickMortar(p, dist); return true;
             case "Marksman": TickMarksman(p, dist); return true;
             case "Ninja": TickNinja(p, dist); return true;
+            case "Vortex": TickVortex(p, dist); return true;
+            case "Reaper": TickReaper(p, dist); return true;
+            case "Beamer": TickBeamer(p, dist); return true;
+            case "Cultist": TickCultist(p, dist); return true;
+            case "Juggernaut": TickJuggernaut(p, dist); return true;
             case "ShieldKnight": TickShield(p); return false;
             default: return false;
         }
@@ -424,6 +432,204 @@ public class EnemyAbility : MonoBehaviour
         facing = new Vector2(Mathf.Cos(next * Mathf.Deg2Rad), Mathf.Sin(next * Mathf.Deg2Rad));
         if (shieldPivot != null)
             shieldPivot.transform.rotation = Quaternion.Euler(0, 0, next);
+    }
+
+    // ---------- Vortex: втягивает игрока и стреляет кольцами ----------
+    void TickVortex(Transform p, float dist)
+    {
+        float dt = Time.deltaTime;
+        timer2 -= dt;
+        timer3 -= dt;
+        transform.localScale = e.BaseScale * (1f + Mathf.Sin(Time.time * 6f) * 0.06f);
+
+        if (dist < 9.5f && dist > 1.2f)
+        {
+            Vector2 pull = (Pos - (Vector2)p.position).normalized;
+            p.position += (Vector3)(pull * 2.4f * dt);
+            if (timer3 <= 0f)
+            {
+                Ring(Pos, 1.6f, new Color(0.6f, 0.3f, 1f, 0.35f), 0.7f);
+                timer3 = 0.8f;
+            }
+        }
+
+        if (timer2 <= 0f && dist < e.shootRange)
+        {
+            angle += 22f;
+            for (int k = 0; k < 8; k++)
+                e.FireBullet(Rot(Vector2.right, angle + k * 45f), e.damage / 2, 6f, 0.4f);
+            timer2 = e.shootCooldown;
+        }
+    }
+
+    // ---------- Reaper: исчезает, появляется рядом и рубит по области ----------
+    void TickReaper(Transform p, float dist)
+    {
+        float dt = Time.deltaTime;
+        timer -= dt;
+        SpriteRenderer sr = e.Sprite;
+
+        switch (state)
+        {
+            case 0:
+                e.MoveBy(((Vector2)p.position - Pos).normalized * e.moveSpeed * dt);
+                timer2 -= dt;
+                if (dist < e.attackRange && timer2 <= 0f)
+                {
+                    PlayerController.Instance.TakeDamage(e.damage / 2);
+                    timer2 = 1f;
+                }
+                if (timer <= 0f && dist > 3.5f)
+                {
+                    state = 1;
+                    timer = 0.4f;
+                }
+                break;
+
+            case 1: // растворяется
+                if (sr != null) sr.color = new Color(e.BaseColor.r, e.BaseColor.g, e.BaseColor.b, Mathf.Clamp01(timer / 0.4f) * 0.9f + 0.05f);
+                if (timer <= 0f)
+                {
+                    Vector2 side = Rot(Vector2.right, Random.Range(0f, 360f)) * 2.2f;
+                    transform.position = e.ClampToRoom((Vector2)p.position + side);
+                    Ring(Pos, 2.4f, new Color(1f, 0.15f, 0.2f, 0.35f), 0.7f);
+                    state = 2;
+                    timer = 0.7f;
+                }
+                break;
+
+            default: // замах
+                if (sr != null) sr.color = Color.Lerp(e.BaseColor, new Color(1f, 0.3f, 0.3f), Mathf.PingPong(Time.time * 12f, 1f));
+                if (timer <= 0f)
+                {
+                    if (Vector2.Distance(Pos, p.position) < 2.4f)
+                        PlayerController.Instance.TakeDamage(e.damage);
+                    if (EffectsManager.Instance != null) EffectsManager.Instance.SpawnHitEffect(Pos);
+                    if (PostProcessEffect.Instance != null) PostProcessEffect.Instance.TriggerScreenShake(0.1f, 0.1f);
+                    e.RestoreColor();
+                    state = 0;
+                    timer = Random.Range(2.5f, 3.5f);
+                }
+                break;
+        }
+    }
+
+    // ---------- Beamer: луч с прицеливанием ----------
+    void TickBeamer(Transform p, float dist)
+    {
+        float dt = Time.deltaTime;
+        timer -= dt;
+
+        if (state == 0)
+        {
+            if (timer <= 0f && dist < e.shootRange + 4f)
+            {
+                state = 1;
+                timer = 1.3f;
+                line = MakeLine(new Color(0.3f, 0.9f, 1f, 0.25f));
+            }
+        }
+        else if (state == 1)
+        {
+            if (timer > 0.35f) dir = ((Vector2)p.position - Pos).normalized;
+            SetLine(line, Pos, Pos + dir * 22f, 0.08f);
+            line.GetComponent<SpriteRenderer>().color = new Color(0.3f, 0.9f, 1f, Mathf.Lerp(0.15f, 0.7f, 1f - timer / 1.3f));
+            if (timer <= 0f)
+            {
+                state = 2;
+                timer = 0.8f;
+                timer2 = 0f;
+                line.GetComponent<SpriteRenderer>().color = new Color(0.7f, 1f, 1f, 0.95f);
+                if (PostProcessEffect.Instance != null) PostProcessEffect.Instance.TriggerScreenShake(0.08f, 0.8f);
+            }
+        }
+        else
+        {
+            SetLine(line, Pos, Pos + dir * 22f, 0.55f + Mathf.Sin(Time.time * 40f) * 0.1f);
+            timer2 -= dt;
+            if (timer2 <= 0f)
+            {
+                timer2 = 0.12f;
+                Vector2 rel = (Vector2)p.position - Pos;
+                float along = Vector2.Dot(rel, dir);
+                float across = Mathf.Abs(rel.x * dir.y - rel.y * dir.x);
+                if (along > 0f && across < 0.65f)
+                    PlayerController.Instance.TakeDamage(Mathf.Max(1, e.damage / 2));
+            }
+            if (timer <= 0f)
+            {
+                Destroy(line);
+                state = 0;
+                timer = e.shootCooldown;
+            }
+        }
+        if (e.Sprite != null) e.Sprite.flipX = p.position.x < transform.position.x;
+    }
+
+    // ---------- Cultist: держит дистанцию и призывает бесов ----------
+    void TickCultist(Transform p, float dist)
+    {
+        float dt = Time.deltaTime;
+        timer -= dt;
+        timer2 -= dt;
+        KeepDistance(p, dist, 5.5f, 9f);
+
+        if (timer <= 0f && e.roomManager != null && GameObject.FindGameObjectsWithTag("Enemy").Length < 14)
+        {
+            for (int i = 0; i < 2; i++)
+            {
+                Vector2 pos = e.ClampToRoom(Pos + Random.insideUnitCircle * 1.8f);
+                e.roomManager.enemiesAlive++;
+                e.roomManager.SpawnEnemy(pos, "Imp", e.enemyFloor);
+            }
+            Ring(Pos, 2.5f, new Color(0.9f, 0.2f, 0.4f, 0.4f), 0.5f);
+            timer = 6f;
+        }
+
+        if (timer2 <= 0f && dist < e.shootRange)
+        {
+            e.FireBullet(((Vector2)p.position - Pos).normalized, e.damage / 2, 8f, 0.4f);
+            timer2 = e.shootCooldown;
+        }
+    }
+
+    // ---------- Juggernaut: медленный, но бьёт по земле кругом ----------
+    void TickJuggernaut(Transform p, float dist)
+    {
+        float dt = Time.deltaTime;
+        timer -= dt;
+        timer2 -= dt;
+
+        if (state == 0)
+        {
+            e.MoveBy(((Vector2)p.position - Pos).normalized * e.moveSpeed * dt);
+            if (dist < e.attackRange && timer2 <= 0f)
+            {
+                PlayerController.Instance.TakeDamage(e.damage);
+                timer2 = e.attackCooldown;
+            }
+            if (timer <= 0f && dist < 7f)
+            {
+                state = 1;
+                timer = 0.9f;
+                Ring(Pos, 3.4f, new Color(1f, 0.2f, 0.1f, 0.3f), 0.9f);
+            }
+        }
+        else
+        {
+            Flash(new Color(1f, 0.4f, 0.3f), 14f);
+            if (timer <= 0f)
+            {
+                e.RestoreColor();
+                if (Vector2.Distance(Pos, p.position) < 3.4f)
+                    PlayerController.Instance.TakeDamage(e.damage);
+                Ring(Pos, 3.6f, new Color(1f, 0.6f, 0.2f, 0.6f), 0.35f);
+                if (EffectsManager.Instance != null) EffectsManager.Instance.SpawnDeathEffect(Pos);
+                if (PostProcessEffect.Instance != null) PostProcessEffect.Instance.TriggerScreenShake(0.2f, 0.25f);
+                state = 0;
+                timer = Random.Range(4f, 5.5f);
+            }
+        }
     }
 
     // ---------- Mortar: навесной обстрел с маркером на земле ----------

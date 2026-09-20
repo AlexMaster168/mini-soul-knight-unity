@@ -38,6 +38,11 @@ public class Enemy : MonoBehaviour
     private float spawnTimer;
     private float spawnDuration = 0.6f;
 
+    [HideInInspector] public float frozenUntil;
+    private bool wasFrozen;
+    public bool IsFrozen { get { return Time.time < frozenUntil; } }
+    public void Freeze(float seconds) { frozenUntil = Time.time + seconds; }
+
     public Transform playerTransform { get { return player; } }
     public SpriteRenderer Sprite { get { return spriteRenderer; } }
     public Vector3 BaseScale { get { return baseScale; } }
@@ -75,6 +80,19 @@ public class Enemy : MonoBehaviour
             transform.localScale = baseScale * Mathf.Max(0.01f, eased);
             if (spawnTimer <= 0f) transform.localScale = baseScale;
             return;
+        }
+
+        if (Time.time < frozenUntil)
+        {
+            wasFrozen = true;
+            if (spriteRenderer != null)
+                spriteRenderer.color = Color.Lerp(originalColor, new Color(0.5f, 0.8f, 1f), 0.7f);
+            return;
+        }
+        if (wasFrozen)
+        {
+            wasFrozen = false;
+            RestoreColor();
         }
 
         float dist = Vector2.Distance(transform.position, player.position);
@@ -160,6 +178,8 @@ public class Enemy : MonoBehaviour
             case "FireMage": case "FireElemental": case "Imp": case "Dragon": return new Color(1f, 0.55f, 0.1f);
             case "NecroMage": case "Lich": case "Warlock": return new Color(0.7f, 0.3f, 1f);
             case "Necromancer": case "Shaman": return new Color(0.4f, 1f, 0.4f);
+            case "Vortex": case "VoidEye": return new Color(0.7f, 0.35f, 1f);
+            case "Cultist": case "Reaper": return new Color(1f, 0.25f, 0.35f);
             case "StormMage": return new Color(1f, 1f, 0.4f);
             case "Wraith": case "Shadow": case "Nightmare": return new Color(0.45f, 0.35f, 0.8f);
             case "Harpy": return new Color(1f, 0.6f, 0.85f);
@@ -177,6 +197,7 @@ public class Enemy : MonoBehaviour
             case "IceMage": case "FireMage": case "NecroMage": case "Lich": case "Warlock": case "StormMage":
             case "Wraith": case "Shadow": case "Nightmare": case "Harpy": case "Sentry": case "Blinker":
             case "Shaman": case "Necromancer": case "Dragon": case "Mage": case "FireElemental":
+            case "Vortex": case "VoidEye": case "Cultist":
                 return BulletStyle.Orb;
             default: return BulletStyle.Round;
         }
@@ -662,6 +683,8 @@ public class Enemy : MonoBehaviour
         }
     }
 
+    const int GoldMultiplier = 3; // множитель выпадающего золота
+
     void SpawnGold()
     {
         int goldTotal = 10;
@@ -683,7 +706,7 @@ public class Enemy : MonoBehaviour
             coinCount = 15;
         }
 
-        if (enemyType == "CrownedBoar" || enemyType == "Dragon" || enemyType == "Necromancer")
+        if (GameData.Bosses.ContainsKey(enemyType))
         {
             goldTotal = 500;
             coinCount = 80;
@@ -700,7 +723,7 @@ public class Enemy : MonoBehaviour
             obj.transform.localScale = Vector3.one * 0.8f;
             obj.AddComponent<BoxCollider2D>().isTrigger = true;
             GoldPickup gp = obj.AddComponent<GoldPickup>();
-            gp.goldValue = Mathf.Max(1, goldTotal / coinCount);
+            gp.goldValue = Mathf.Max(1, goldTotal / coinCount) * GoldMultiplier;
         }
     }
 

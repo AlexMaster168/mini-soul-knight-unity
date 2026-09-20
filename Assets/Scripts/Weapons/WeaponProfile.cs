@@ -29,7 +29,7 @@ public class WeaponProfile
             case "LaserRifle": case "Laser": case "Plasma": case "Shock": case "Thunder": case "IceGun": case "PoisonGun": case "ArcRifle": case "VoidBeam": return WeaponClass.Energy;
             case "Rocket": case "Flamethrower": case "HolyGrenade": case "GrenadeLauncher": case "Minigun": return WeaponClass.Heavy;
             case "Boomerang": case "Star Wand": case "FairyGun": case "Chakram": case "ShurikenFan": return WeaponClass.Exotic;
-            case "Sword": case "Katana": case "Mace": case "Axe": case "Scythe": case "Spear": case "Dagger": case "Hammer": return WeaponClass.Melee;
+            case "Sword": case "Katana": case "Mace": case "Axe": case "Scythe": case "Spear": case "Dagger": case "Hammer": case "RustyBlade": return WeaponClass.Melee;
             default: return WeaponClass.Pistol;
         }
     }
@@ -95,6 +95,7 @@ public class WeaponProfile
             case "Chakram": p.style = BulletStyle.Boomerang; p.color = new Color(0.8f, 0.9f, 1f); p.boomerang = true; p.lifetime = 1.0f; p.kick = 0f; p.rise = 0f; break;
             case "ShurikenFan": p.style = BulletStyle.Star; p.color = new Color(0.85f, 0.9f, 1f); p.kick = 0.06f; p.rise = 4f; break;
 
+            case "RustyBlade": p.style = BulletStyle.Slash; p.color = new Color(1f, 0.6f, 0.3f); p.lifetime = 0.18f; break;
             case "Spear": p.style = BulletStyle.Shard; p.color = new Color(0.85f, 0.95f, 1f); p.lifetime = 0.24f; break;
             case "Dagger": p.style = BulletStyle.Slash; p.color = new Color(0.9f, 0.9f, 1f); p.lifetime = 0.1f; break;
             case "Hammer": p.style = BulletStyle.Slash; p.color = new Color(1f, 0.6f, 0.3f); p.lifetime = 0.2f; p.aoeRadius = 2.2f; break;

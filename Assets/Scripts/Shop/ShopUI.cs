@@ -10,7 +10,7 @@ public class ShopUI : MonoBehaviour
     private Text goldText;
     private bool isOpen;
     private int selectedIndex;
-    private int itemCount = 6;
+    private int itemCount = 10;
     private Image[] rowBgs;
     private Text[] costTexts;
 
@@ -43,21 +43,25 @@ public class ShopUI : MonoBehaviour
         panelRect.anchorMax = new Vector2(0.5f, 0.5f);
         panelRect.pivot = new Vector2(0.5f, 0.5f);
         panelRect.anchoredPosition = Vector2.zero;
-        panelRect.sizeDelta = new Vector2(500, 550);
+        panelRect.sizeDelta = new Vector2(560, 720);
 
         CreateTitle("WEAPON SHOP");
         CreateGoldDisplay();
         CreateHint();
 
-        string[] names = { "Random Weapon", "Health +50", "Energy +80", "Armor +30", "Damage x2 (8s)", "Speed x1.5 (8s)" };
-        int[] costs = { 25, 15, 10, 20, 18, 12 };
+        string[] names = { "Random Weapon", "Health +50", "Energy +80", "Armor +30", "Damage x2 (8s)", "Speed x1.5 (8s)", "FULL Health", "FULL Energy", "FULL Armor", "FULL RESTORE (all)" };
+        int[] costs = { 25, 15, 10, 20, 18, 12, 0, 0, 0, 0 };
         Color[] colors = {
             new Color(1f, 0.85f, 0.1f),
             new Color(0.2f, 0.9f, 0.2f),
             new Color(0.2f, 0.5f, 1f),
             new Color(0.3f, 0.7f, 1f),
             new Color(0.9f, 0.2f, 0.2f),
-            new Color(0.2f, 0.9f, 0.9f)
+            new Color(0.2f, 0.9f, 0.9f),
+            new Color(0.35f, 1f, 0.45f),
+            new Color(0.35f, 0.65f, 1f),
+            new Color(0.6f, 0.85f, 1f),
+            new Color(1f, 0.85f, 0.2f)
         };
 
         rowBgs = new Image[itemCount];
@@ -116,7 +120,7 @@ public class ShopUI : MonoBehaviour
         t.fontSize = 14;
         t.color = new Color(1f, 1f, 1f, 0.5f);
         t.alignment = TextAnchor.MiddleCenter;
-        t.text = "Up/Down select  |  Enter buy  |  E close";
+        t.text = "Up/Down select  |  Enter buy  |  F full restore  |  E close";
         RectTransform r = obj.GetComponent<RectTransform>();
         r.anchorMin = new Vector2(0, 1);
         r.anchorMax = new Vector2(1, 1);
@@ -128,7 +132,7 @@ public class ShopUI : MonoBehaviour
     void CreateItemRow(string name, int cost, int index, Color color)
     {
         float yStart = -115;
-        float rowH = 55;
+        float rowH = 52;
         float y = yStart - index * rowH;
 
         GameObject row = new GameObject("Row_" + index);
@@ -233,6 +237,36 @@ public class ShopUI : MonoBehaviour
     {
         if (ScoreManager.Instance != null)
             goldText.text = "Gold: " + ScoreManager.Instance.GetGold();
+        for (int i = 6; i < itemCount; i++)
+            costTexts[i].text = FullCost(i) > 0 ? FullCost(i) + " G" : "FULL";
+    }
+
+    // Полное восстановление: цена за недостающие единицы (HP 2, энергия 1, броня 3)
+    int MissingHp() { var p = PlayerController.Instance; return p == null ? 0 : Mathf.Max(0, p.maxHealth - p.currentHealth); }
+    int MissingEn() { var p = PlayerController.Instance; return p == null ? 0 : Mathf.Max(0, p.maxEnergy - p.currentEnergy); }
+    int MissingAr() { var p = PlayerController.Instance; return p == null ? 0 : Mathf.Max(0, p.maxArmor - p.armor); }
+    int FullCost(int index)
+    {
+        switch (index)
+        {
+            case 6: return MissingHp() * 2;
+            case 7: return MissingEn();
+            case 8: return MissingAr() * 3;
+            default: return MissingHp() * 2 + MissingEn() + MissingAr() * 3;
+        }
+    }
+
+    void BuyFull(int index)
+    {
+        int cost = FullCost(index);
+        if (cost <= 0) return;
+        if (ScoreManager.Instance == null || !ScoreManager.Instance.SpendGold(cost)) return;
+        PlayerController p = PlayerController.Instance;
+        if (index == 6 || index == 9) p.currentHealth = p.maxHealth;
+        if (index == 7 || index == 9) p.currentEnergy = p.maxEnergy;
+        if (index == 8 || index == 9) p.armor = p.maxArmor;
+        if (EffectsManager.Instance != null)
+            EffectsManager.Instance.SpawnPickupEffect(p.transform.position, new Color(0.5f, 1f, 0.6f));
     }
 
     void BuyItem(int index)
@@ -245,6 +279,7 @@ public class ShopUI : MonoBehaviour
             case 3: BuyArmor(); break;
             case 4: BuyDamageBoost(); break;
             case 5: BuySpeedBoost(); break;
+            case 6: case 7: case 8: case 9: BuyFull(index); break;
         }
         UpdateGoldDisplay();
     }
@@ -252,8 +287,7 @@ public class ShopUI : MonoBehaviour
     void BuyRandomWeapon()
     {
         if (ScoreManager.Instance == null || !ScoreManager.Instance.SpendGold(25)) return;
-        string[] weapons = new string[GameData.Weapons.Count];
-        GameData.Weapons.Keys.CopyTo(weapons, 0);
+        string[] weapons = GameData.LootableWeapons();
         string weapon = weapons[Random.Range(0, weapons.Length)];
         Inventory inv = PlayerController.Instance.GetComponent<Inventory>();
         if (inv != null) inv.AddWeapon(weapon, true);
@@ -329,6 +363,10 @@ public class ShopUI : MonoBehaviour
         else if (Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.H))
         {
             BuyItem(selectedIndex);
+        }
+        else if (Input.GetKeyDown(KeyCode.F))
+        {
+            BuyItem(9);
         }
         else if (Input.GetKeyDown(KeyCode.E) || Input.GetKeyDown(KeyCode.Escape))
         {

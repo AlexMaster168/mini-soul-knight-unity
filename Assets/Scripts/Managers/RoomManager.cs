@@ -32,7 +32,20 @@ public class RoomManager : MonoBehaviour
         "Charger", "Turret", "Shadow"
     };
 
-    static readonly string[] bossPerFloor = { "CrownedBoar", "Necromancer", "Dragon" };
+    static readonly string[] floor4 =
+    {
+        "Vortex", "Reaper", "Beamer", "Cultist", "Juggernaut", "Marksman", "Mortar", "ShieldKnight", "Ninja",
+        "Sentry", "Blinker", "Shaman", "Werewolf", "Abomination", "Wraith", "Lich", "Warlock", "StormMage",
+        "Berserker", "Troll", "Charger", "Golem", "LivingBomb", "FireElemental", "Nightmare"
+    };
+    static readonly string[] floor5 =
+    {
+        "Vortex", "Reaper", "Reaper", "Beamer", "Cultist", "Juggernaut", "CrystalGolem", "Guardian", "DarkKnight",
+        "Assassin", "Shadow", "Nightmare", "StormMage", "Warlock", "Lich", "Marksman", "Mortar", "Abomination",
+        "Berserker", "ShieldKnight", "Blinker", "Sentry"
+    };
+
+    static readonly string[] allBosses = { "CrownedBoar", "Necromancer", "Dragon", "GolemKing", "SpiderQueen" };
 
     public bool IsStarted { get { return started; } }
 
@@ -64,8 +77,8 @@ public class RoomManager : MonoBehaviour
         waitingNextWave = false;
         wavesLeft--;
 
-        string[] pool = floor <= 1 ? floor1 : floor == 2 ? floor2 : floor3;
-        int count = 2 + floor + Random.Range(0, 2);
+        string[] pool = floor <= 1 ? floor1 : floor == 2 ? floor2 : floor == 3 ? floor3 : floor == 4 ? floor4 : floor5;
+        int count = Mathf.Min(2 + floor + Random.Range(0, 2), 8);
 
         List<Vector2> used = new List<Vector2>();
         int stationary = 0;
@@ -75,7 +88,7 @@ public class RoomManager : MonoBehaviour
         {
             string type = pool[Random.Range(0, pool.Length)];
             // не больше двух неподвижных стрелков в волне
-            bool isStatic = type == "Turret" || type == "Sentry" || type == "Mortar" || type == "Blinker";
+            bool isStatic = type == "Turret" || type == "Sentry" || type == "Mortar" || type == "Blinker" || type == "Beamer" || type == "Vortex";
             if (isStatic && stationary >= 2) type = pool[0];
             if (isStatic) stationary++;
 
@@ -106,7 +119,15 @@ public class RoomManager : MonoBehaviour
 
     void SpawnBoss()
     {
-        string type = bossPerFloor[Mathf.Clamp(floor - 1, 0, bossPerFloor.Length - 1)];
+        // случайный босс, не повторяющийся в рамках забега
+        List<string> pool = new List<string>();
+        List<string> used = DungeonGenerator.Instance.usedBosses;
+        foreach (string b in allBosses)
+            if (!used.Contains(b)) pool.Add(b);
+        if (pool.Count == 0) pool.AddRange(allBosses);
+        string type = pool[Random.Range(0, pool.Count)];
+        if (floor >= DungeonGenerator.MaxFloors) type = "VoidEye"; // финальный босс
+        used.Add(type);
         Vector2 pos = (Vector2)roomData.worldCenter + new Vector2(0, 1.5f);
         enemiesAlive = 1;
         SpawnEnemy(pos, type, floor);
@@ -121,6 +142,9 @@ public class RoomManager : MonoBehaviour
             case "CrownedBoar": return "The Crowned Boar";
             case "Necromancer": return "The Necromancer";
             case "Dragon": return "Ancient Dragon";
+            case "VoidEye": return "The Void Eye";
+            case "GolemKing": return "The Golem King";
+            case "SpiderQueen": return "The Spider Queen";
             default: return type;
         }
     }
@@ -163,7 +187,7 @@ public class RoomManager : MonoBehaviour
         Rigidbody2D rb = enemy.AddComponent<Rigidbody2D>();
         rb.gravityScale = 0;
         rb.freezeRotation = true;
-        if (type == "Turret" || type == "Sentry" || type == "Blinker")
+        if (type == "Turret" || type == "Sentry" || type == "Blinker" || type == "Beamer" || type == "Vortex")
             rb.bodyType = RigidbodyType2D.Kinematic;
 
         BoxCollider2D col = enemy.AddComponent<BoxCollider2D>();
@@ -188,7 +212,7 @@ public class RoomManager : MonoBehaviour
         Enemy e = enemy.AddComponent<Enemy>();
         e.roomManager = this;
 
-        float hpMul = isBoss ? 1f : 1f + 0.3f * (floor - 1);
+        float hpMul = isBoss ? 0.75f + 0.25f * (floor - 1) : 1f + 0.3f * (floor - 1);
         e.enemyType = type;
         e.maxHealth = Mathf.RoundToInt(data.health * hpMul);
         e.currentHealth = e.maxHealth;
@@ -232,6 +256,7 @@ public class RoomManager : MonoBehaviour
         {
             case "Turret": case "Sentry": case "Charger": case "BigSlime": case "Shaman": case "Blinker":
             case "ShieldKnight": case "Mortar": case "Marksman": case "Ninja":
+            case "Vortex": case "Reaper": case "Beamer": case "Cultist": case "Juggernaut":
                 return true;
             default: return false;
         }
