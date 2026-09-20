@@ -21,15 +21,15 @@ public class WeaponProfile
     {
         switch (w)
         {
-            case "Pistol": case "Dual": case "Revolver": case "DesertEagle": return WeaponClass.Pistol;
-            case "Shotgun": case "SuperShotgun": case "TacticalSG": return WeaponClass.Shotgun;
-            case "Uzi": case "Mac10": case "Thompson": return WeaponClass.SMG;
-            case "AK": case "LMG": case "M4": case "Famas": return WeaponClass.Rifle;
-            case "Sniper": case "AWP": case "Crossbow": return WeaponClass.Sniper;
-            case "LaserRifle": case "Laser": case "Plasma": case "Shock": case "Thunder": case "IceGun": case "PoisonGun": return WeaponClass.Energy;
+            case "Pistol": case "Dual": case "Revolver": case "DesertEagle": case "GoldenGun": return WeaponClass.Pistol;
+            case "Shotgun": case "SuperShotgun": case "TacticalSG": case "Blunderbuss": return WeaponClass.Shotgun;
+            case "Uzi": case "Mac10": case "Thompson": case "Vector": return WeaponClass.SMG;
+            case "AK": case "LMG": case "M4": case "Famas": case "SCAR": return WeaponClass.Rifle;
+            case "Sniper": case "AWP": case "Crossbow": case "Railgun": return WeaponClass.Sniper;
+            case "LaserRifle": case "Laser": case "Plasma": case "Shock": case "Thunder": case "IceGun": case "PoisonGun": case "ArcRifle": case "VoidBeam": return WeaponClass.Energy;
             case "Rocket": case "Flamethrower": case "HolyGrenade": case "GrenadeLauncher": case "Minigun": return WeaponClass.Heavy;
-            case "Boomerang": case "Star Wand": case "FairyGun": return WeaponClass.Exotic;
-            case "Sword": case "Katana": case "Mace": case "Axe": case "Scythe": return WeaponClass.Melee;
+            case "Boomerang": case "Star Wand": case "FairyGun": case "Chakram": case "ShurikenFan": return WeaponClass.Exotic;
+            case "Sword": case "Katana": case "Mace": case "Axe": case "Scythe": case "Spear": case "Dagger": case "Hammer": return WeaponClass.Melee;
             default: return WeaponClass.Pistol;
         }
     }
@@ -84,6 +84,20 @@ public class WeaponProfile
             case "Mace": p.style = BulletStyle.Slash; p.color = new Color(1f, 0.75f, 0.4f); p.lifetime = 0.2f; break;
             case "Axe": p.style = BulletStyle.Slash; p.color = new Color(1f, 0.6f, 0.4f); p.lifetime = 0.18f; break;
             case "Scythe": p.style = BulletStyle.Slash; p.color = new Color(0.8f, 0.5f, 1f); p.lifetime = 0.22f; break;
+
+            case "GoldenGun": p.style = BulletStyle.Slug; p.color = new Color(1f, 0.85f, 0.2f); p.kick = 0.16f; p.rise = 12f; p.trail = true; break;
+            case "Vector": p.style = BulletStyle.Slug; p.color = new Color(1f, 0.5f, 0.4f); p.kick = 0.04f; p.rise = 2f; p.recover = 40f; break;
+            case "SCAR": p.style = BulletStyle.Streak; p.color = new Color(1f, 0.9f, 0.5f); p.kick = 0.1f; p.rise = 6f; p.recover = 24f; break;
+            case "Blunderbuss": p.color = new Color(0.9f, 0.7f, 0.4f); p.lifetime = 0.5f; p.kick = 0.55f; p.rise = 32f; p.recover = 7f; break;
+            case "Railgun": p.style = BulletStyle.Laser; p.color = new Color(0.6f, 1f, 1f); p.lifetime = 1f; p.kick = 0.6f; p.rise = 10f; p.recover = 4f; p.trail = true; break;
+            case "ArcRifle": p.style = BulletStyle.Streak; p.color = new Color(0.5f, 0.8f, 1f); p.wobble = 12f; p.kick = 0.06f; p.rise = 3f; p.trail = true; break;
+            case "VoidBeam": p.style = BulletStyle.Laser; p.color = new Color(0.7f, 0.3f, 1f); p.kick = 0.04f; p.rise = 2f; p.trail = true; break;
+            case "Chakram": p.style = BulletStyle.Boomerang; p.color = new Color(0.8f, 0.9f, 1f); p.boomerang = true; p.lifetime = 1.0f; p.kick = 0f; p.rise = 0f; break;
+            case "ShurikenFan": p.style = BulletStyle.Star; p.color = new Color(0.85f, 0.9f, 1f); p.kick = 0.06f; p.rise = 4f; break;
+
+            case "Spear": p.style = BulletStyle.Shard; p.color = new Color(0.85f, 0.95f, 1f); p.lifetime = 0.24f; break;
+            case "Dagger": p.style = BulletStyle.Slash; p.color = new Color(0.9f, 0.9f, 1f); p.lifetime = 0.1f; break;
+            case "Hammer": p.style = BulletStyle.Slash; p.color = new Color(1f, 0.6f, 0.3f); p.lifetime = 0.2f; p.aoeRadius = 2.2f; break;
         }
         return p;
     }

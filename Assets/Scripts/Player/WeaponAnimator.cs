@@ -9,6 +9,10 @@ public class WeaponAnimator : MonoBehaviour
     private Transform weaponT;
     private SpriteRenderer weaponSr;
     private SpriteRenderer glowSr;
+    private Transform backPivot;
+    private Transform backT;
+    private SpriteRenderer backSr;
+    private float lastBackShot = -10f;
     private string currentWeapon;
     private WeaponProfile profile;
 
@@ -49,6 +53,18 @@ public class WeaponAnimator : MonoBehaviour
         weaponSr = w.AddComponent<SpriteRenderer>();
         weaponSr.sortingOrder = 12;
 
+        // второй ствол - для стрельбы назад (ПКМ)
+        backPivot = new GameObject("BackWeaponPivot").transform;
+        backPivot.SetParent(player, false);
+        backPivot.localPosition = new Vector3(0, 0.05f, 0);
+        GameObject bw = new GameObject("BackWeaponVisual");
+        backT = bw.transform;
+        backT.SetParent(backPivot, false);
+        backT.localPosition = new Vector3(HoldDist, 0, 0);
+        backSr = bw.AddComponent<SpriteRenderer>();
+        backSr.sortingOrder = 12;
+        backSr.enabled = false;
+
         GameObject g = new GameObject("MuzzleGlow");
         g.transform.SetParent(weaponT, false);
         glowSr = g.AddComponent<SpriteRenderer>();
@@ -68,6 +84,7 @@ public class WeaponAnimator : MonoBehaviour
     {
         profile = WeaponProfile.Get(currentWeapon);
         weaponSr.sprite = PixelArt.Weapon(currentWeapon);
+        backSr.sprite = weaponSr.sprite;
         weaponSr.enabled = true;
         hideUntil = 0f;
         equipT = 0f;
@@ -148,11 +165,19 @@ public class WeaponAnimator : MonoBehaviour
         float s = 0.7f * equipScale * swingScale;
         weaponT.localScale = new Vector3(s, left ? -s : s, 1f);
 
+        // задний ствол: виден пока зажата ПКМ (и чуть после выстрела назад)
+        bool backActive = Input.GetMouseButton(1) || Time.time - lastBackShot < 0.3f;
+        backPivot.position = Origin;
+        backPivot.rotation = Quaternion.Euler(0, 0, angle + 180f - rise * side + swingAngle + equipSpin);
+        backT.localPosition = weaponT.localPosition;
+        backT.localScale = new Vector3(s, left ? s : -s, 1f);
+
         if (hideUntil > 0f)
         {
             weaponSr.enabled = Time.time > hideUntil;
             if (weaponSr.enabled) hideUntil = 0f;
         }
+        backSr.enabled = backActive && weaponSr.enabled;
 
         if (glowSr.enabled)
         {
@@ -164,11 +189,12 @@ public class WeaponAnimator : MonoBehaviour
         }
     }
 
-    public void PlayShootEffect(Vector2 direction)
+    public void PlayShootEffect(Vector2 direction, bool fromBack = false)
     {
         if (currentWeapon == null || profile == null) return;
 
         lastShot = Time.time;
+        if (fromBack) lastBackShot = Time.time;
         kick = profile.kick;
         rise = profile.rise;
         glow = 1f;

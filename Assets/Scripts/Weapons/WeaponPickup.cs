@@ -3,6 +3,11 @@ using UnityEngine;
 public class WeaponPickup : MonoBehaviour
 {
     public string weaponName = "Pistol";
+    public float enableTime;
+
+    // подсказка "E - заменить" для HUD
+    public static string hintWeapon;
+    public static float hintTime = -10f;
 
     private Vector3 startPos;
     private SpriteRenderer spriteRenderer;
@@ -11,14 +16,19 @@ public class WeaponPickup : MonoBehaviour
     {
         startPos = transform.position;
         spriteRenderer = GetComponent<SpriteRenderer>();
-        if (spriteRenderer != null)
-            spriteRenderer.sortingOrder = 8;
 
         if (string.IsNullOrEmpty(weaponName) || !GameData.Weapons.ContainsKey(weaponName))
         {
             string[] keys = new string[GameData.Weapons.Count];
             GameData.Weapons.Keys.CopyTo(keys, 0);
             weaponName = keys[Random.Range(0, keys.Length)];
+        }
+
+        if (spriteRenderer != null)
+        {
+            spriteRenderer.sprite = PixelArt.Weapon(weaponName);
+            spriteRenderer.sortingOrder = 8;
+            transform.localScale = Vector3.one * 0.9f;
         }
     }
 
@@ -27,22 +37,37 @@ public class WeaponPickup : MonoBehaviour
         transform.position = startPos + Vector3.up * Mathf.Sin(Time.time * 2f) * 0.15f;
 
         PlayerController player = PlayerController.Instance;
-        if (player == null) return;
+        if (player == null || Time.time < enableTime) return;
+        if (Vector2.Distance(transform.position, player.transform.position) >= 1.2f) return;
 
-        if (Vector2.Distance(transform.position, player.transform.position) < 1f)
+        Inventory inv = player.GetComponent<Inventory>();
+        if (inv == null) return;
+
+        if (inv.weapons.Contains(weaponName))
         {
-            Inventory inv = player.GetComponent<Inventory>();
-            if (inv != null)
-                inv.AddWeapon(weaponName);
-            else
-                player.EquipWeapon(weaponName);
-
-            Debug.Log("Picked up: " + weaponName);
-
-            if (EffectsManager.Instance != null)
-                EffectsManager.Instance.SpawnPickupEffect(transform.position, GetRarityColor());
-            Destroy(gameObject);
+            // дубликат - превращаем в золото
+            if (ScoreManager.Instance != null) ScoreManager.Instance.AddGold(25);
+            Consume();
         }
+        else if (!inv.IsFull)
+        {
+            inv.AddWeapon(weaponName);
+            Consume();
+        }
+        else
+        {
+            hintWeapon = weaponName;
+            hintTime = Time.time;
+            if (Input.GetKeyDown(KeyCode.E) && inv.AddWeapon(weaponName, true))
+                Consume();
+        }
+    }
+
+    void Consume()
+    {
+        if (EffectsManager.Instance != null)
+            EffectsManager.Instance.SpawnPickupEffect(transform.position, GetRarityColor());
+        Destroy(gameObject);
     }
 
     Color GetRarityColor()

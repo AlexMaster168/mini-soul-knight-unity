@@ -127,6 +127,20 @@ public static class GameData
         { "Mace", new WeaponData("Mace", 70, 0.8f, 1, 0, 0f, 1.5f, 0f, true) },
         { "Axe", new WeaponData("Axe", 60, 0.6f, 1, 0, 0f, 1.3f, 0f, true) },
         { "Scythe", new WeaponData("Scythe", 85, 0.7f, 1, 0, 0f, 1.4f, 0f, true) },
+
+        // NEW
+        { "GoldenGun", new WeaponData("GoldenGun", 38, 0.28f, 1, 7, 26f, 0.4f, 0.05f) },
+        { "Vector", new WeaponData("Vector", 6, 0.045f, 1, 2, 24f, 0.35f, 0.2f) },
+        { "SCAR", new WeaponData("SCAR", 18, 0.16f, 1, 5, 26f, 0.4f, 0.06f) },
+        { "Blunderbuss", new WeaponData("Blunderbuss", 11, 1.0f, 9, 24, 16f, 0.35f, 0.35f) },
+        { "Railgun", new WeaponData("Railgun", 220, 2.4f, 1, 40, 60f, 0.4f, 0f, true) },
+        { "ArcRifle", new WeaponData("ArcRifle", 22, 0.12f, 1, 5, 24f, 0.4f, 0.05f) },
+        { "VoidBeam", new WeaponData("VoidBeam", 45, 0.35f, 1, 16, 40f, 0.3f, 0f, true) },
+        { "Spear", new WeaponData("Spear", 55, 0.45f, 1, 0, 0f, 1.1f, 0f, true) },
+        { "Dagger", new WeaponData("Dagger", 22, 0.18f, 1, 0, 0f, 0.8f, 0f, true) },
+        { "Hammer", new WeaponData("Hammer", 110, 1.0f, 1, 0, 0f, 1.6f, 0f, true, true) },
+        { "Chakram", new WeaponData("Chakram", 40, 0.7f, 1, 0, 16f, 0.6f, 0f, true) },
+        { "ShurikenFan", new WeaponData("ShurikenFan", 22, 0.4f, 3, 8, 20f, 0.45f, 0.35f) },
     };
 
     public static Dictionary<string, EnemyData> Enemies = new Dictionary<string, EnemyData>

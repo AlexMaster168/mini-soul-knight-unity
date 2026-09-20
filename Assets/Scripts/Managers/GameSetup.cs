@@ -55,6 +55,7 @@ public class GameSetup : MonoBehaviour
                 case BulletStyle.Streak: spec.size = Mathf.Max(0.7f, data.bulletSize * 1.8f); break;
                 case BulletStyle.Laser: spec.size = Mathf.Max(1.2f, data.bulletSize * 5f); break;
                 case BulletStyle.Bolt: spec.size = 1.1f; break;
+                case BulletStyle.Shard: spec.size = Mathf.Max(0.8f, data.bulletSize * 2f); break;
                 case BulletStyle.Rocket: spec.size = 1.1f; break;
                 case BulletStyle.Round: spec.size = Mathf.Max(0.3f, data.bulletSize); break;
             }

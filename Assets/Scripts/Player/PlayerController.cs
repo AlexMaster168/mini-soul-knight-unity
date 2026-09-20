@@ -110,8 +110,10 @@ public class PlayerController : MonoBehaviour
             if (Input.GetKeyDown(KeyCode.Space) && dashCooldownTimer <= 0)
                 StartDash();
 
-            if (Input.GetMouseButton(0) && attackTimer <= 0)
-                Shoot();
+            bool wantFront = Input.GetMouseButton(0);
+            bool wantBack = Input.GetMouseButton(1);
+            if ((wantFront || wantBack) && attackTimer <= 0)
+                Shoot(wantFront, wantBack);
         }
         else
         {
@@ -122,6 +124,13 @@ public class PlayerController : MonoBehaviour
         {
             if (Inventory.Instance != null)
                 Inventory.Instance.NextWeapon();
+        }
+
+        float wheel = Input.mouseScrollDelta.y;
+        if (wheel != 0f && Inventory.Instance != null && !shopOpen && !statsOpen)
+        {
+            if (wheel > 0f) Inventory.Instance.PreviousWeapon();
+            else Inventory.Instance.NextWeapon();
         }
 
         if (Input.GetKeyDown(KeyCode.Alpha1)) SwitchWeapon(0);
@@ -196,32 +205,43 @@ public class PlayerController : MonoBehaviour
             spriteRenderer.color = originalColor;
     }
 
-    void Shoot()
+    // ЛКМ - вперёд (к курсору), ПКМ - назад. Оба зажаты - стреляем в обе стороны сразу
+    void Shoot(bool front, bool back)
     {
-        if (currentEnergy < energyCost) return;
+        int sides = (front ? 1 : 0) + (back ? 1 : 0);
+        int cost = energyCost * sides;
+        if (currentEnergy < cost) return;
 
         if (AudioManager.Instance != null)
             AudioManager.Instance.PlayShootSound();
 
         attackTimer = attackCooldown;
-        currentEnergy -= energyCost;
+        currentEnergy -= cost;
 
         Vector3 mousePos3D = Input.mousePosition;
         mousePos3D.z = Mathf.Abs(Camera.main.transform.position.z);
         Vector2 mousePos = Camera.main.ScreenToWorldPoint(mousePos3D);
-        Vector2 shootDir = (mousePos - (Vector2)transform.position).normalized;
-
-        bool shootBack = Input.GetMouseButton(1);
-        if (shootBack)
-            shootDir = -shootDir;
+        Vector2 aim = (mousePos - (Vector2)transform.position).normalized;
 
         bool melee = weaponProfile != null && weaponProfile.cls == WeaponClass.Melee;
-        if (!melee && !shootBack)
-            shootDir = ApplyAimAssist(shootDir);
 
-        if (WeaponAnimator.Instance != null)
-            WeaponAnimator.Instance.PlayShootEffect(shootDir);
+        for (int side = 0; side < 2; side++)
+        {
+            bool isBack = side == 1;
+            if (isBack ? !back : !front) continue;
 
+            Vector2 shootDir = isBack ? -aim : aim;
+            if (!melee) shootDir = ApplyAimAssist(shootDir);
+
+            if (WeaponAnimator.Instance != null)
+                WeaponAnimator.Instance.PlayShootEffect(shootDir, isBack);
+
+            FireWeapon(shootDir, melee);
+        }
+    }
+
+    void FireWeapon(Vector2 shootDir, bool melee)
+    {
         if (weaponData == null || weaponProfile == null)
         {
             SpawnLegacyBullet(shootDir);
@@ -238,7 +258,7 @@ public class PlayerController : MonoBehaviour
             if (n == 1)
                 angle = Random.Range(-spread, spread) * 0.5f;
             else
-                angle = Mathf.Lerp(-spread, spread, n == 1 ? 0.5f : (float)i / (n - 1)) + Random.Range(-spread, spread) * 0.15f;
+                angle = Mathf.Lerp(-spread, spread, (float)i / (n - 1)) + Random.Range(-spread, spread) * 0.15f;
 
             Vector2 dir = Quaternion.Euler(0, 0, angle) * shootDir;
             Vector3 spawnPos = transform.position + (Vector3)(dir * reach);

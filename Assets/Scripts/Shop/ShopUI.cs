@@ -256,7 +256,7 @@ public class ShopUI : MonoBehaviour
         GameData.Weapons.Keys.CopyTo(weapons, 0);
         string weapon = weapons[Random.Range(0, weapons.Length)];
         Inventory inv = PlayerController.Instance.GetComponent<Inventory>();
-        if (inv != null) inv.AddWeapon(weapon);
+        if (inv != null) inv.AddWeapon(weapon, true);
         if (EffectsManager.Instance != null)
             EffectsManager.Instance.SpawnPickupEffect(PlayerController.Instance.transform.position, new Color(1f, 0.85f, 0.1f));
     }

@@ -773,6 +773,34 @@ public static class PixelArt
                 c.Rect(16, 3, 22, 9, D); c.Rect(21, 4, 24, 8, S); break;
             case "Scythe":
                 c.Rect(0, 5, 20, 6, Brown); c.Line(19, 6, 22, 10, D, 2); c.Line(22, 10, 27, 9, S, 2); c.Line(27, 9, 27, 4, S, 1.5f); c.Line(21, 10, 26, 8, W, 1); break;
+            case "GoldenGun": Pistol(c, new Color(1f, 0.8f, 0.25f), 13); c.Rect(8, 9, 18, 9, W); break;
+            case "Vector":
+                c.Rect(6, 5, 19, 9, DD); c.Rect(19, 6, 24, 7, S); c.Rect(7, 0, 9, 5, D); c.Rect(12, 0, 13, 5, D); c.Rect(6, 10, 19, 10, R); break;
+            case "SCAR": Rifle(c, new Color(0.7f, 0.6f, 0.4f), new Color(0.5f, 0.42f, 0.28f), 15, true, true); break;
+            case "Blunderbuss":
+                c.Rect(0, 3, 7, 7, Brown); c.Rect(7, 5, 17, 8, DBrown); c.Rect(7, 1, 9, 5, DBrown); c.Rect(8, 6, 17, 6, Y);
+                c.Tri(17, 4.5f, 17, 9.5f, 27, 11.5f, S); c.Tri(17, 4.5f, 27, 0.5f, 27, 11.5f, D); break;
+            case "Railgun":
+                c.Rect(0, 4, 7, 7, DD); c.Rect(7, 5, 26, 8, D); c.Rect(9, 9, 26, 9, Cyan); c.Rect(9, 4, 26, 4, Cyan);
+                c.Rect(13, 2, 14, 10, S); c.Rect(18, 2, 19, 10, S); c.Rect(7, 1, 9, 5, DD); break;
+            case "ArcRifle":
+                c.Rect(6, 5, 16, 8, DD); c.Rect(7, 1, 9, 5, DD); c.Rect(16, 3, 17, 10, S);
+                c.Line(17, 6, 20, 10, Cyan, 1.5f); c.Line(20, 10, 22, 3, Cyan, 1.5f); c.Line(22, 3, 26, 8, Cyan, 1.5f); break;
+            case "VoidBeam":
+                c.Rect(6, 5, 14, 8, DD); c.Rect(6, 1, 9, 5, DD); c.Ell(19, 6.5f, 5.5f, 5.5f, new Color(0.25f, 0.08f, 0.4f));
+                c.Ring(19, 6.5f, 3.5f, 5.5f, new Color(0.7f, 0.3f, 1f)); c.Ell(19, 6.5f, 1.5f, 1.5f, W); break;
+            case "Spear":
+                c.Rect(0, 5, 22, 6, Brown); c.Tri(21, 2.5f, 21, 9.5f, 27.5f, 6, S); c.Rect(20, 4, 20, 7, Y); break;
+            case "Dagger":
+                c.Rect(4, 5, 7, 6, DBrown); c.Rect(8, 3, 9, 8, Y); c.Rect(10, 5, 20, 6, S); c.Tri(20, 4.5f, 20, 7.5f, 25, 6, W); break;
+            case "Hammer":
+                c.Rect(2, 5, 17, 6, Brown); c.Rect(15, 1, 26, 10, D); c.Rect(15, 9, 26, 10, S); c.Rect(15, 1, 26, 2, DD); c.Rect(17, 4, 24, 7, DD); break;
+            case "Chakram":
+                c.Ring(14, 6, 3.5f, 5.8f, S); c.Ring(14, 6, 2f, 3.5f, D);
+                for (int i = 0; i < 8; i++) { float a = i * 45f * Mathf.Deg2Rad; c.Px(14 + Mathf.RoundToInt(Mathf.Cos(a) * 6.5f), 6 + Mathf.RoundToInt(Mathf.Sin(a) * 6.5f), W); } break;
+            case "ShurikenFan":
+                c.Tri(14, 11.5f, 8, 3, 20, 3, S); c.Tri(14, 0.5f, 8, 9, 20, 9, D); c.Ell(14, 6, 1.8f, 1.8f, DD);
+                c.Tri(3, 6, 8, 9, 8, 3, S); c.Tri(25, 6, 20, 9, 20, 3, S); break;
             default: Pistol(c, D, 13); break;
         }
     }

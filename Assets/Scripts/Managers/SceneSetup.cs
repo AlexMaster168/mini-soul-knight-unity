@@ -73,6 +73,7 @@ public class SceneSetup : MonoBehaviour
         CreateManager("AmbientParticles", typeof(AmbientParticles));
         CreateManager("TrapManager", typeof(TrapManager));
         CreateManager("WeaponAnimator", typeof(WeaponAnimator));
+        CreateManager("WeaponSlotsUI", typeof(WeaponSlotsUI));
     }
 
     void CreateManager(string name, System.Type component)
