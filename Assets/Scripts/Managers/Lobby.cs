@@ -396,10 +396,11 @@ public class LobbyUI : MonoBehaviour
 
     private GameObject panel;
     private Text crystalHud, title, crystals, detailTitle, detailSub, detailBody, detailBuy, message, keys;
-    private Image detailIcon;
+    private Image detailIcon, detailIcon2;
     private const int Rows = 10;
     private readonly Image[] rowBg = new Image[Rows];
     private readonly Image[] rowIcon = new Image[Rows];
+    private readonly Image[] rowIcon2 = new Image[Rows];
     private readonly Text[] rowName = new Text[Rows];
     private readonly Text[] rowStatus = new Text[Rows];
 
@@ -444,6 +445,8 @@ public class LobbyUI : MonoBehaviour
             rowBg[i] = UiKit.MakeImage(panel.transform, "Row" + i, new Color(0.12f, 0.1f, 0.2f, 0.9f), 25, 64 + i * 50, 470, 46);
             rowIcon[i] = UiKit.MakeImage(rowBg[i].transform, "Icon", Color.white, 6, 0, 46, 46);
             rowIcon[i].preserveAspect = true;
+            rowIcon2[i] = UiKit.MakeImage(rowBg[i].transform, "Icon2", Color.white, 52, 0, 46, 46);
+            rowIcon2[i].preserveAspect = true;
             rowName[i] = UiKit.MakeText(rowBg[i].transform, "Name", 22, Color.white, TextAnchor.MiddleLeft, 62, 0, 260, 46);
             rowStatus[i] = UiKit.MakeText(rowBg[i].transform, "Status", 20, Color.white, TextAnchor.MiddleRight, 320, 0, 140, 46);
             rowStatus[i].fontStyle = FontStyle.Bold;
@@ -452,6 +455,8 @@ public class LobbyUI : MonoBehaviour
         UiKit.MakeImage(panel.transform, "Divider", new Color(1f, 1f, 1f, 0.12f), 515, 64, 2, 500);
         detailIcon = UiKit.MakeImage(panel.transform, "Preview", Color.white, 640, 68, 220, 220);
         detailIcon.preserveAspect = true;
+        detailIcon2 = UiKit.MakeImage(panel.transform, "Preview2", Color.white, 760, 68, 220, 220);
+        detailIcon2.preserveAspect = true;
         detailTitle = UiKit.MakeText(panel.transform, "DTitle", 28, Color.white, TextAnchor.UpperLeft, 535, 296, 440, 36);
         detailTitle.fontStyle = FontStyle.Bold;
         detailSub = UiKit.MakeText(panel.transform, "DSub", 17, Color.gray, TextAnchor.UpperLeft, 535, 332, 440, 24);
@@ -511,8 +516,23 @@ public class LobbyUI : MonoBehaviour
         return PixelArt.Hero(cur.kind, s.main, s.accent, cur.female);
     }
 
+    // во вкладке скинов показываем сразу парня и девушку в этом скине
+    Sprite SkinPreview(int i, bool girl)
+    {
+        SkinDef s = MetaProgress.Skins[i];
+        CharacterDef cur = MetaProgress.GetChar(MetaProgress.SelectedChar);
+        return PixelArt.Hero(cur.kind, s.main, s.accent, girl);
+    }
+
     void Refresh()
     {
+        bool skins = mode == 1;
+        RectTransform d1 = detailIcon.rectTransform, d2 = detailIcon2.rectTransform;
+        d1.anchoredPosition = new Vector2(skins ? 540 : 640, -68);
+        d1.sizeDelta = skins ? new Vector2(200, 200) : new Vector2(220, 220);
+        d2.anchoredPosition = new Vector2(760, -68);
+        d2.sizeDelta = new Vector2(200, 200);
+        detailIcon2.enabled = skins;
         title.text = "HERO MASTER     " + (mode == 0 ? "[ Heroes ]   Skins" : "Heroes   [ Skins ]") + "   (T)";
         crystals.text = "Crystals: " + MetaProgress.Crystals;
 
@@ -523,7 +543,10 @@ public class LobbyUI : MonoBehaviour
             if (!exists) continue;
 
             rowBg[i].color = i == index ? new Color(0.3f, 0.22f, 0.5f, 1f) : new Color(0.12f, 0.1f, 0.2f, 0.9f);
-            rowIcon[i].sprite = Preview(i);
+            rowIcon[i].sprite = skins ? SkinPreview(i, false) : Preview(i);
+            rowIcon2[i].enabled = skins;
+            if (skins) rowIcon2[i].sprite = SkinPreview(i, true);
+            rowName[i].rectTransform.anchoredPosition = new Vector2(skins ? 104 : 62, 0);
             rowName[i].text = IdAt(i);
             bool owned = Owned(i);
             if (Equipped(i)) { rowStatus[i].text = "EQUIPPED"; rowStatus[i].color = new Color(0.5f, 1f, 0.5f); }
@@ -535,7 +558,8 @@ public class LobbyUI : MonoBehaviour
             }
         }
 
-        detailIcon.sprite = Preview(index);
+        detailIcon.sprite = skins ? SkinPreview(index, false) : Preview(index);
+        if (skins) detailIcon2.sprite = SkinPreview(index, true);
         detailTitle.text = IdAt(index);
         if (mode == 0)
         {

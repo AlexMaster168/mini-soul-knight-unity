@@ -11,7 +11,9 @@ public class ShopUI : MonoBehaviour
     private bool isOpen;
     private int selectedIndex;
     private int itemCount = 10;
+    private const int PageSize = 5;
     private Image[] rowBgs;
+    private Text pageText;
     private Text[] costTexts;
 
     void Awake()
@@ -43,7 +45,7 @@ public class ShopUI : MonoBehaviour
         panelRect.anchorMax = new Vector2(0.5f, 0.5f);
         panelRect.pivot = new Vector2(0.5f, 0.5f);
         panelRect.anchoredPosition = Vector2.zero;
-        panelRect.sizeDelta = new Vector2(560, 720);
+        panelRect.sizeDelta = new Vector2(560, 500);
 
         CreateTitle("WEAPON SHOP");
         CreateGoldDisplay();
@@ -71,6 +73,20 @@ public class ShopUI : MonoBehaviour
             CreateItemRow(names[i], costs[i], i, colors[i]);
 
         CreateCloseHint();
+
+        GameObject pg = new GameObject("Page");
+        pg.transform.SetParent(shopPanel.transform, false);
+        pageText = pg.AddComponent<Text>();
+        pageText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+        pageText.fontSize = 16;
+        pageText.color = new Color(1f, 1f, 1f, 0.7f);
+        pageText.alignment = TextAnchor.MiddleCenter;
+        RectTransform pr = pg.GetComponent<RectTransform>();
+        pr.anchorMin = new Vector2(0, 0);
+        pr.anchorMax = new Vector2(1, 0);
+        pr.pivot = new Vector2(0.5f, 0);
+        pr.anchoredPosition = new Vector2(0, 42);
+        pr.sizeDelta = new Vector2(0, 26);
         shopPanel.SetActive(false);
     }
 
@@ -120,7 +136,7 @@ public class ShopUI : MonoBehaviour
         t.fontSize = 14;
         t.color = new Color(1f, 1f, 1f, 0.5f);
         t.alignment = TextAnchor.MiddleCenter;
-        t.text = "Up/Down select  |  Enter buy  |  F full restore  |  E close";
+        t.text = "Up/Down select  |  Left/Right page  |  Enter buy  |  F full restore  |  E close";
         RectTransform r = obj.GetComponent<RectTransform>();
         r.anchorMin = new Vector2(0, 1);
         r.anchorMax = new Vector2(1, 1);
@@ -133,7 +149,7 @@ public class ShopUI : MonoBehaviour
     {
         float yStart = -115;
         float rowH = 52;
-        float y = yStart - index * rowH;
+        float y = yStart - (index % PageSize) * rowH;
 
         GameObject row = new GameObject("Row_" + index);
         row.transform.SetParent(shopPanel.transform, false);
@@ -224,8 +240,12 @@ public class ShopUI : MonoBehaviour
 
     void UpdateSelection()
     {
+        int page = selectedIndex / PageSize;
+        int pages = (itemCount + PageSize - 1) / PageSize;
+        pageText.text = "Page " + (page + 1) + " / " + pages;
         for (int i = 0; i < itemCount; i++)
         {
+            rowBgs[i].gameObject.SetActive(i / PageSize == page);
             if (i == selectedIndex)
                 rowBgs[i].color = new Color(rowBgs[i].color.r, rowBgs[i].color.g, rowBgs[i].color.b, 1f);
             else
@@ -363,6 +383,16 @@ public class ShopUI : MonoBehaviour
         else if (Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.H))
         {
             BuyItem(selectedIndex);
+        }
+        else if (Input.GetKeyDown(KeyCode.RightArrow) || Input.GetKeyDown(KeyCode.D))
+        {
+            selectedIndex = ((selectedIndex / PageSize + 1) * PageSize) % itemCount;
+            UpdateSelection();
+        }
+        else if (Input.GetKeyDown(KeyCode.LeftArrow) || Input.GetKeyDown(KeyCode.A))
+        {
+            selectedIndex = ((selectedIndex / PageSize - 1) * PageSize + itemCount) % itemCount;
+            UpdateSelection();
         }
         else if (Input.GetKeyDown(KeyCode.F))
         {

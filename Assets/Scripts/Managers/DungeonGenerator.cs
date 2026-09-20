@@ -652,6 +652,10 @@ public class DungeonGenerator : MonoBehaviour
 
         GenerateFloor();
 
+        // после босса на старте нового этажа ждёт продавец для восстановления статов
+        foreach (var kvp in rooms)
+            if (kvp.Value.isStartRoom) SpawnShopKeeper(kvp.Value);
+
         PlayerController pc = PlayerController.Instance;
         if (pc != null)
         {

@@ -37,8 +37,8 @@ public static class Loc
         "WEAPON SHOP", "КРАМНИЦЯ ЗБРОЇ", "Random Weapon", "Випадкова зброя", "Health +50", "Здоров'я +50", "Energy +80", "Енергія +80",
         "Armor +30", "Броня +30", "Damage x2 (8s)", "Шкода x2 (8с)", "Speed x1.5 (8s)", "Швидкість x1.5 (8с)",
         "FULL Health", "ПОВНЕ здоров'я", "FULL Energy", "ПОВНА енергія", "FULL Armor", "ПОВНА броня", "FULL RESTORE (all)", "ПОВНЕ ВІДНОВЛЕННЯ (усе)",
-        "FULL", "ПОВНЕ", "Up/Down select  |  Enter buy  |  F full restore  |  E close",
-        "Вгору/Вниз - вибір  |  Enter - купити  |  F - повне відновлення  |  E - закрити",
+        "FULL", "ПОВНЕ", "Up/Down select  |  Left/Right page  |  Enter buy  |  F full restore  |  E close",
+        "Вгору/Вниз - вибір  |  Вліво/Вправо - сторінка  |  Enter - купити  |  F - повне відновлення  |  E - закрити",
         "Press E to close", "Натисни E, щоб закрити", "[E] Shop", "[E] Крамниця",
 
         // ---------- торговец ----------
