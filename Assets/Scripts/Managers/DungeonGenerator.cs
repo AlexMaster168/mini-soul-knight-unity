@@ -23,6 +23,12 @@ public class DungeonGenerator : MonoBehaviour
     public bool IsTransitioning { get { return transitioning; } }
     public bool IsLobby { get; private set; }
 
+    // уникальный номер текущей комнаты (учитывает этаж)
+    public int CurrentRoomId
+    {
+        get { return currentRoom == null ? -1 : floor * 1000000 + (currentRoom.gridPos.x + 50) * 1000 + (currentRoom.gridPos.y + 50); }
+    }
+
     public class RoomData
     {
         public Vector2Int gridPos;
@@ -159,6 +165,8 @@ public class DungeonGenerator : MonoBehaviour
 
         foreach (var kvp in rooms)
             CreateRoomVisual(kvp.Value, theme);
+
+        UpdateBossLock();
 
         startRoom.visited = true;
         startRoom.cleared = true; // на старте безопасно
@@ -492,6 +500,12 @@ public class DungeonGenerator : MonoBehaviour
         PlayerController player = PlayerController.Instance;
         if (player == null) return;
 
+        HandleDoorInteraction(player);
+
+        // подсказка у запертой двери босса
+        if (bossLocked && currentRoom.cleared && IsAdjacentToBoss(currentRoom))
+            HudHint.Show("Clear all rooms on this floor to open the boss door");
+
         Vector2 p = player.transform.position;
         float hw = roomInnerW / 2f;
         float hh = roomInnerH / 2f;
@@ -588,8 +602,83 @@ public class DungeonGenerator : MonoBehaviour
 
     // ================= ЗАЧИСТКА, ЛУТ, ПОРТАЛ =================
 
+    // Двери между комнатами открываются клавишей E рядом с ними
+    void HandleDoorInteraction(PlayerController player)
+    {
+        RoomDoor nearest = null;
+        float best = 2.6f;
+        foreach (var kvp in rooms)
+            foreach (RoomDoor d in kvp.Value.doors)
+            {
+                if (d == null || !d.IsManualClosed) continue;
+                float dist = Vector2.Distance(d.transform.position, player.transform.position);
+                if (dist < best) { best = dist; nearest = d; }
+            }
+        if (nearest == null) return;
+
+        if (nearest.IsLocked)
+        {
+            HudHint.Show("Clear all rooms on this floor to open the boss door");
+            return;
+        }
+
+        HudHint.Show("[E] Open the door");
+        bool uiOpen = (ShopUI.Instance != null && ShopUI.Instance.IsOpen())
+                      || (WeaponShopUI.Instance != null && WeaponShopUI.Instance.IsOpen())
+                      || (AbilityMenuUI.Instance != null && AbilityMenuUI.Instance.IsOpen());
+        if (!uiOpen && Input.GetKeyDown(KeyCode.E))
+        {
+            // открываем эту дверь и парную с другой стороны прохода
+            Vector3 at = nearest.transform.position;
+            foreach (var kvp in rooms)
+                foreach (RoomDoor d in kvp.Value.doors)
+                    if (d != null && !d.IsLocked && Vector2.Distance(d.transform.position, at) < 3.2f)
+                        d.OpenManual();
+        }
+    }
+
+    // Босса не обойти: пока не зачищены все остальные комнаты этажа, двери к нему заперты
+    private bool bossLocked;
+
+    bool AllOtherRoomsCleared()
+    {
+        foreach (var kvp in rooms)
+            if (!kvp.Value.isBossRoom && !kvp.Value.cleared) return false;
+        return true;
+    }
+
+    void UpdateBossLock()
+    {
+        RoomData boss = null;
+        foreach (var kvp in rooms) if (kvp.Value.isBossRoom) boss = kvp.Value;
+        if (boss == null) { bossLocked = false; return; }
+
+        bool wasLocked = bossLocked;
+        bossLocked = !AllOtherRoomsCleared();
+
+        foreach (RoomDoor d in boss.doors) if (d != null) d.SetLocked(bossLocked);
+
+        foreach (var kvp in rooms)
+        {
+            RoomData r = kvp.Value;
+            if (r.isBossRoom || !r.connections.Contains(boss.gridPos)) continue;
+            foreach (RoomDoor d in r.doors)
+            {
+                if (d == null) continue;
+                Vector2 off = d.transform.position - r.worldCenter;
+                Vector2Int dir = Mathf.Abs(off.x) > Mathf.Abs(off.y)
+                    ? new Vector2Int(off.x > 0 ? 1 : -1, 0) : new Vector2Int(0, off.y > 0 ? 1 : -1);
+                if (r.gridPos + dir == boss.gridPos) d.SetLocked(bossLocked);
+            }
+        }
+
+        if (wasLocked && !bossLocked)
+            HudHint.Flash("The boss door is open!", 3f);
+    }
+
     public void RoomCleared(RoomData room)
     {
+        UpdateBossLock();
         SpawnRoomLoot(room);
 
         if (!room.isBossRoom)

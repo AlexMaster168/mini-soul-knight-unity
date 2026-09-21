@@ -219,6 +219,8 @@ public class WeaponInfoUI : MonoBehaviour
         icon.preserveAspect = true;
         title = UiKit.MakeText(panel.transform, "Title", 26, Color.white, TextAnchor.UpperLeft, 18, 14, 280, 34);
         sub = UiKit.MakeText(panel.transform, "Sub", 16, Color.gray, TextAnchor.UpperLeft, 18, 48, 280, 24);
+        title.resizeTextForBestFit = true; title.resizeTextMinSize = 14; title.resizeTextMaxSize = 26; title.verticalOverflow = VerticalWrapMode.Truncate;
+        sub.resizeTextForBestFit = true; sub.resizeTextMinSize = 11; sub.resizeTextMaxSize = 16; sub.verticalOverflow = VerticalWrapMode.Truncate;
         body = UiKit.MakeText(panel.transform, "Body", 17, Color.white, TextAnchor.UpperLeft, 18, 84, 364, 260);
         action = UiKit.MakeText(panel.transform, "Action", 17, new Color(1f, 0.9f, 0.4f), TextAnchor.LowerLeft, 18, 350, 364, 60);
         action.fontStyle = FontStyle.Bold;

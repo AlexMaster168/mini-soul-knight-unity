@@ -136,7 +136,7 @@ public class UIManager : MonoBehaviour
         hintText.fontSize = 12;
         hintText.color = new Color(1f, 1f, 1f, 0.4f);
         hintText.alignment = TextAnchor.MiddleCenter;
-        hintText.text = "WASD Move | Click Shoot | Space Dash | 1-8 Weapons | 9 Blade | Q Next | E Shop | Tab Stats";
+        hintText.text = "WASD Move | Click Shoot | Space Dash | 1-8 Weapons | 9 Blade | Q Next | E Shop | Tab Stats | B Abilities";
 
         // === MINIMAP ===
         GameObject mmObj = CreatePanel(canvas.transform, "Minimap", new Vector2(1, 0), new Vector2(1, 0), new Vector2(-10, 35), new Vector2(MINIMAP_SIZE, MINIMAP_SIZE));

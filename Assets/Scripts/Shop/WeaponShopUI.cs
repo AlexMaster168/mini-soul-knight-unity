@@ -93,11 +93,14 @@ public class WeaponShopUI : MonoBehaviour
 
         UiKit.MakeImage(panel.transform, "Divider", new Color(1f, 1f, 1f, 0.12f), 575, 68, 2, 500);
 
-        detailIcon = UiKit.MakeImage(panel.transform, "DetailIcon", Color.white, 830, 68, 220, 110);
+        detailIcon = UiKit.MakeImage(panel.transform, "DetailIcon", Color.white, 830, 128, 220, 60);
         detailIcon.preserveAspect = true;
-        detailTitle = UiKit.MakeText(panel.transform, "DetailTitle", 30, Color.white, TextAnchor.UpperLeft, 595, 68, 230, 40);
+        detailTitle = UiKit.MakeText(panel.transform, "DetailTitle", 28, Color.white, TextAnchor.MiddleLeft, 595, 68, 480, 40);
         detailTitle.fontStyle = FontStyle.Bold;
-        detailSub = UiKit.MakeText(panel.transform, "DetailSub", 18, Color.gray, TextAnchor.UpperLeft, 595, 110, 230, 26);
+        detailTitle.resizeTextForBestFit = true; detailTitle.resizeTextMinSize = 16; detailTitle.resizeTextMaxSize = 28;
+        detailTitle.horizontalOverflow = HorizontalWrapMode.Wrap; detailTitle.verticalOverflow = VerticalWrapMode.Truncate;
+        detailSub = UiKit.MakeText(panel.transform, "DetailSub", 18, Color.gray, TextAnchor.MiddleLeft, 595, 112, 230, 50);
+        detailSub.resizeTextForBestFit = true; detailSub.resizeTextMinSize = 12; detailSub.resizeTextMaxSize = 18;
         detailBody = UiKit.MakeText(panel.transform, "DetailBody", 18, Color.white, TextAnchor.UpperLeft, 595, 190, 480, 300);
         detailBuy = UiKit.MakeText(panel.transform, "DetailBuy", 22, new Color(1f, 0.9f, 0.4f), TextAnchor.MiddleLeft, 595, 500, 480, 66);
         detailBuy.fontStyle = FontStyle.Bold;
@@ -149,7 +152,7 @@ public class WeaponShopUI : MonoBehaviour
             PlayerAbilities ab = PlayerAbilities.Instance;
             en.color = d.color; en.price = d.price;
             en.sub = "Super Ability  -  cooldown " + d.cooldown + "s";
-            en.body = d.description + "\n\nActivate with Z / X / C (in order of purchase). You can carry up to " + PlayerAbilities.MaxSlots + " abilities.";
+            en.body = d.description + "\n\nActivate with Z / X / C (in order of purchase). You can carry up to " + PlayerAbilities.MaxSlots + " abilities.\nCan be used only once in each room.";
             if (ab != null && ab.Owns(id)) en.status = "OWNED";
             else if (ab != null && ab.IsFull) en.note = "Ability slots are full";
         }
@@ -161,7 +164,13 @@ public class WeaponShopUI : MonoBehaviour
             en.price = u.Price(lvl);
             en.sub = "Permanent upgrade  -  level " + lvl + " / " + u.maxLevel;
             en.body = u.description + "\n\nLasts for the whole run.";
+            int curFloor = DungeonGenerator.Instance != null ? DungeonGenerator.Instance.GetFloor() : 1;
             if (lvl >= u.maxLevel) en.status = "MAX";
+            else if (curFloor < UpgradeCatalog.DeepFloor && lvl >= u.freeLevels)
+            {
+                en.status = "FLOOR " + UpgradeCatalog.DeepFloor + "+";
+                en.note = "Unlocks from dungeon floor " + UpgradeCatalog.DeepFloor;
+            }
         }
         else if (m == 4)
         {
@@ -317,7 +326,7 @@ public class WeaponShopUI : MonoBehaviour
             while (true)
             {
                 Entry next = Describe(2, id);
-                if (next.status == "MAX") break;
+                if (next.status == "MAX" || (next.status != null && next.status.StartsWith("FLOOR"))) break;
                 if (!ScoreManager.Instance.SpendGold(next.price)) break;
                 PlayerUpgrades.Instance.Apply(id);
                 bought++;

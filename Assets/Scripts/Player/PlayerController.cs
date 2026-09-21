@@ -6,6 +6,8 @@ public class PlayerController : MonoBehaviour
 
     [Header("Movement")]
     public float moveSpeed = 8f;
+    // счётчики временных бустов: несколько одновременных бустов больше не накапливают бонус навсегда
+    [HideInInspector] public int speedBoosts, damageBoosts, multiShotBoosts;
     public float dashSpeed = 15f;
     public float dashDuration = 0.2f;
     public float dashCooldown = 1f;
@@ -39,9 +41,20 @@ public class PlayerController : MonoBehaviour
     [HideInInspector] public float damageMultiplier = 1f;
     [HideInInspector] public float damageReduction = 0f;
 
+    // с 3 этажа герой бьёт сильнее: +25% урона за каждый этаж начиная с третьего
+    public static float DepthDamageBonus
+    {
+        get
+        {
+            DungeonGenerator g = DungeonGenerator.Instance;
+            if (g == null || g.IsLobby) return 1f;
+            return 1f + 0.25f * Mathf.Max(0, g.GetFloor() - 2);
+        }
+    }
+
     public int EffectiveDamage
     {
-        get { return Mathf.RoundToInt(attackDamage * damageMultiplier * (Time.time < ascendUntil ? 3f : 1f)); }
+        get { return Mathf.RoundToInt(attackDamage * damageMultiplier * DepthDamageBonus * (damageBoosts > 0 ? 2f : 1f) * (Time.time < ascendUntil ? 3f : 1f)); }
     }
     public float bossWeaponCooldown = 0f;
 
@@ -111,7 +124,8 @@ public class PlayerController : MonoBehaviour
         }
 
         bool shopOpen = (ShopUI.Instance != null && ShopUI.Instance.IsOpen()) || (WeaponShopUI.Instance != null && WeaponShopUI.Instance.IsOpen())
-                       || (LobbyUI.Instance != null && LobbyUI.Instance.IsOpen());
+                       || (LobbyUI.Instance != null && LobbyUI.Instance.IsOpen())
+                       || (AbilityMenuUI.Instance != null && AbilityMenuUI.Instance.IsOpen());
         bool statsOpen = UIManager.Instance != null && UIManager.Instance.StatsVisible();
 
         if (!shopOpen && !statsOpen)

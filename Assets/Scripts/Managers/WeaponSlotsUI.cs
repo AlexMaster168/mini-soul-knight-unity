@@ -6,7 +6,9 @@ public static class HudHint
 {
     public static string text = "";
     public static float time = -10f;
-    public static void Show(string t) { text = t; time = Time.time; }
+    public static float until = -10f;
+    public static void Show(string t) { text = t; time = Time.time; until = Time.time + 0.15f; }
+    public static void Flash(string t, float seconds) { text = t; time = Time.time; until = Time.time + seconds; }
 }
 
 // Панель слотов оружия внизу экрана + слоты супер-способностей
@@ -18,6 +20,11 @@ public class WeaponSlotsUI : MonoBehaviour
     private Text hint;
     private Image[] abilityBoxes = new Image[PlayerAbilities.MaxSlots];
     private Text[] abilityTexts = new Text[PlayerAbilities.MaxSlots];
+    private Text[] abilityKey = new Text[PlayerAbilities.MaxSlots];
+    private Text[] abilityDesc = new Text[PlayerAbilities.MaxSlots];
+    private Text[] abilityState = new Text[PlayerAbilities.MaxSlots];
+    private Image[] abilityStrip = new Image[PlayerAbilities.MaxSlots];
+    private Image[] abilityCd = new Image[PlayerAbilities.MaxSlots];
     private Image reserveFrame;
     private Image reserveIcon;
     private Text reserveLabel;
@@ -110,32 +117,74 @@ public class WeaponSlotsUI : MonoBehaviour
         hr.sizeDelta = new Vector2(900, 40);
         hr.anchoredPosition = new Vector2(0, 205f);
 
-        // слоты супер-способностей: над правым краем панели оружия
+        // супер-способности: колонка слева по центру экрана (название, клавиша, эффект, перезарядка)
         for (int i = 0; i < PlayerAbilities.MaxSlots; i++)
         {
             GameObject ab = new GameObject("Ability" + (i + 1));
             ab.transform.SetParent(transform, false);
             abilityBoxes[i] = ab.AddComponent<Image>();
+            abilityBoxes[i].color = new Color(0.06f, 0.06f, 0.1f, 0.85f);
             RectTransform ar = abilityBoxes[i].rectTransform;
-            ar.anchorMin = ar.anchorMax = new Vector2(0.5f, 0f);
-            ar.pivot = new Vector2(0.5f, 0f);
-            ar.sizeDelta = new Vector2(96, 78);
-            ar.anchoredPosition = new Vector2(total / 2f - 48f - i * 104f, 112f);
+            ar.anchorMin = ar.anchorMax = new Vector2(0f, 0.5f);
+            ar.pivot = new Vector2(0f, 0.5f);
+            ar.sizeDelta = new Vector2(230, 44);
+            ar.anchoredPosition = new Vector2(14f, 56f - i * 50f);
 
-            GameObject at = new GameObject("Label");
-            at.transform.SetParent(ab.transform, false);
-            abilityTexts[i] = at.AddComponent<Text>();
-            abilityTexts[i].font = font;
-            abilityTexts[i].fontSize = 16;
-            abilityTexts[i].fontStyle = FontStyle.Bold;
-            abilityTexts[i].alignment = TextAnchor.MiddleCenter;
-            abilityTexts[i].color = Color.white;
-            abilityTexts[i].raycastTarget = false;
-            RectTransform tr = abilityTexts[i].rectTransform;
-            tr.anchorMin = Vector2.zero; tr.anchorMax = Vector2.one;
-            tr.offsetMin = tr.offsetMax = Vector2.zero;
+            abilityStrip[i] = MakeImg(ab.transform, Color.white, new Vector2(0, 0), new Vector2(0, 1), new Vector2(0, 0), new Vector2(8, 0));
+            abilityCd[i] = MakeImg(ab.transform, new Color(0f, 0f, 0f, 0.6f), new Vector2(0, 0), new Vector2(1, 1), new Vector2(8, 0), Vector2.zero);
+            abilityKey[i] = MakeTxt(ab.transform, 24, FontStyle.Bold, TextAnchor.MiddleCenter, new Vector2(0, 0), new Vector2(0, 1), new Vector2(8, 0), new Vector2(40, 0));
+            abilityTexts[i] = MakeTxt(ab.transform, 16, FontStyle.Bold, TextAnchor.MiddleLeft, new Vector2(0, 0), new Vector2(1, 1), new Vector2(46, 0), new Vector2(-64, 0));
+            abilityTexts[i].resizeTextForBestFit = true; abilityTexts[i].resizeTextMinSize = 10; abilityTexts[i].resizeTextMaxSize = 16;
+            abilityDesc[i] = MakeTxt(ab.transform, 13, FontStyle.Normal, TextAnchor.UpperLeft, new Vector2(0, 0), new Vector2(0, 0), Vector2.zero, Vector2.zero);
+            abilityDesc[i].gameObject.SetActive(false);   // полное описание теперь в меню способностей (клавиша B)
+            abilityState[i] = MakeTxt(ab.transform, 15, FontStyle.Bold, TextAnchor.MiddleRight, new Vector2(1, 0), new Vector2(1, 1), new Vector2(-62, 0), new Vector2(-6, 0));
+            abilityDesc[i].color = new Color(1f, 1f, 1f, 0.7f);
             ab.SetActive(false);
         }
+    }
+
+    Image MakeImg(Transform parent, Color col, Vector2 amin, Vector2 amax, Vector2 omin, Vector2 omax)
+    {
+        GameObject g = new GameObject("Img");
+        g.transform.SetParent(parent, false);
+        Image im = g.AddComponent<Image>();
+        im.color = col;
+        im.raycastTarget = false;
+        RectTransform r = im.rectTransform;
+        r.anchorMin = amin; r.anchorMax = amax; r.offsetMin = omin; r.offsetMax = omax;
+        return im;
+    }
+
+    Text MakeTxt(Transform parent, int size, FontStyle style, TextAnchor anchor, Vector2 amin, Vector2 amax, Vector2 omin, Vector2 omax)
+    {
+        GameObject g = new GameObject("Txt");
+        g.transform.SetParent(parent, false);
+        Text t = g.AddComponent<Text>();
+        t.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+        t.fontSize = size; t.fontStyle = style; t.alignment = anchor;
+        t.color = Color.white;
+        t.raycastTarget = false;
+        RectTransform r = t.rectTransform;
+        r.anchorMin = amin; r.anchorMax = amax; r.offsetMin = omin; r.offsetMax = omax;
+        return t;
+    }
+
+    // короткое описание эффекта под названием способности
+    static string ShortEffect(string id)
+    {
+        switch (id)
+        {
+            case "Meteor Storm": return "16 meteors on enemies";
+            case "Annihilation": return "Kills the current wave";
+            case "Ascension": return "Godmode for 10s";
+            case "Nova": return "Blast and clear bullets";
+            case "Life Surge": return "+80 HP and +40 armor";
+            case "Bullet Storm": return "Ring of 24 shots";
+            case "Time Freeze": return "Freezes enemies 4s";
+            case "Guardian Shield": return "Invulnerable for 5s";
+            case "Overdrive": return "Free, fast fire for 6s";
+        }
+        return "";
     }
 
     void Update()
@@ -167,7 +216,7 @@ public class WeaponSlotsUI : MonoBehaviour
                 if (i == inv.currentWeaponIndex) frames[i].color = new Color(0.4f, 0.12f, 0.1f, 0.85f);
         }
 
-        hint.text = Time.time - HudHint.time < 0.15f ? HudHint.text : "";
+        hint.text = Time.time < HudHint.until ? HudHint.text : "";
 
         PlayerAbilities pa = PlayerAbilities.Instance;
         for (int i = 0; i < PlayerAbilities.MaxSlots; i++)
@@ -177,9 +226,21 @@ public class WeaponSlotsUI : MonoBehaviour
             if (!has) continue;
             AbilityDef def = AbilityCatalog.Get(pa.owned[i]);
             float rem = pa.Remaining(def.id);
-            Color c = def.color;
-            abilityBoxes[i].color = rem > 0f ? new Color(c.r * 0.25f, c.g * 0.25f, c.b * 0.25f, 0.85f) : new Color(c.r * 0.7f, c.g * 0.7f, c.b * 0.7f, 0.95f);
-            abilityTexts[i].text = "[" + PlayerAbilities.Keys[i] + "]\n" + def.shortName + "\n" + (rem > 0f ? Mathf.CeilToInt(rem) + "s" : "READY");
+            bool used = pa.UsedHere(def.id);
+            abilityStrip[i].color = def.color;
+            abilityKey[i].text = PlayerAbilities.Keys[i].ToString();
+            abilityKey[i].color = def.color;
+            abilityTexts[i].text = def.id;
+            abilityDesc[i].text = def.description;
+
+            // затемнение убывает по мере перезарядки
+            RectTransform cd = abilityCd[i].rectTransform;
+            float frac = rem > 0f ? Mathf.Clamp01(rem / def.cooldown) : (used ? 1f : 0f);
+            cd.anchorMax = new Vector2(frac, 1f);
+
+            if (rem > 0f) { abilityState[i].text = Mathf.CeilToInt(rem) + "s"; abilityState[i].color = new Color(1f, 1f, 1f, 0.7f); }
+            else if (used) { abilityState[i].text = "USED"; abilityState[i].color = new Color(1f, 0.55f, 0.4f); }
+            else { abilityState[i].text = "READY"; abilityState[i].color = new Color(0.5f, 1f, 0.5f); }
         }
     }
 }

@@ -350,18 +350,16 @@ public class ShopUI : MonoBehaviour
 
     System.Collections.IEnumerator DamageBoostCoroutine(PlayerController player)
     {
-        int original = player.attackDamage;
-        player.attackDamage *= 2;
+        player.damageBoosts++;
         yield return new WaitForSeconds(8f);
-        player.attackDamage = original;
+        player.damageBoosts--;
     }
 
     System.Collections.IEnumerator SpeedBoostCoroutine(PlayerController player)
     {
-        float original = player.moveSpeed;
-        player.moveSpeed *= 1.5f;
+        if (player.speedBoosts++ == 0) player.moveSpeed *= 1.5f;
         yield return new WaitForSeconds(8f);
-        player.moveSpeed = original;
+        if (--player.speedBoosts == 0) player.moveSpeed /= 1.5f;
     }
 
     void Update()

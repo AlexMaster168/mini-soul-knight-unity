@@ -8,6 +8,22 @@ public class RoomDoor : MonoBehaviour
 {
     private BoxCollider2D col;
     private bool closed;
+    private bool locked;   // заперта, пока не зачищены все комнаты этажа
+    private bool manual = true;   // закрыта, пока игрок не откроет её клавишей E рядом с дверью
+
+    public bool IsManualClosed { get { return manual; } }
+    public bool IsLocked { get { return locked; } }
+
+    // Игрок открывает дверь: она плавно уезжает и остаётся открытой
+    public void OpenManual()
+    {
+        if (!manual) return;
+        manual = false;
+        if (EffectsManager.Instance != null)
+            EffectsManager.Instance.SpawnPickupEffect(transform.position, new Color(0.9f, 0.85f, 0.5f));
+        if (ProceduralMusic.Instance != null)
+            ProceduralMusic.Instance.PlaySFX("shopOpen");
+    }
     private float k;
 
     void Awake()
@@ -23,13 +39,27 @@ public class RoomDoor : MonoBehaviour
         if (closed) col.enabled = true;
     }
 
+    // Запирает проход к боссу (дверь краснеет и не открывается)
+    public void SetLocked(bool value)
+    {
+        locked = value;
+        if (locked) col.enabled = true;
+        SpriteRenderer sr = GetComponent<SpriteRenderer>();
+        if (sr != null)
+        {
+            Color cl = sr.color;
+            sr.color = value ? new Color(1f, 0.35f, 0.35f, cl.a) : new Color(1f, 1f, 1f, cl.a);
+        }
+    }
+
     void Update()
     {
-        float target = closed ? 1f : 0f;
+        float target = closed || locked || manual ? 1f : 0f;
+        if (target > 0f) col.enabled = true;
         if (Mathf.Approximately(k, target)) return;
-        k = Mathf.MoveTowards(k, target, Time.deltaTime * 4f);
+        k = Mathf.MoveTowards(k, target, Time.deltaTime * (manual ? 4f : 1.6f));
         transform.localScale = Vector3.one * k;
-        if (!closed && k <= 0.01f) col.enabled = false;
+        if (!closed && !locked && !manual && k <= 0.01f) col.enabled = false;
     }
 }
 

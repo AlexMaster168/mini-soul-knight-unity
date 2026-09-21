@@ -72,25 +72,22 @@ public class PowerUp : MonoBehaviour
 
     System.Collections.IEnumerator DamageBoost(PlayerController player)
     {
-        int originalDamage = player.attackDamage;
-        player.attackDamage *= 2;
+        player.damageBoosts++;
         yield return new WaitForSeconds(duration);
-        player.attackDamage = originalDamage;
+        player.damageBoosts--;
     }
 
     System.Collections.IEnumerator SpeedBoost(PlayerController player)
     {
-        float originalSpeed = player.moveSpeed;
-        player.moveSpeed *= 1.5f;
+        if (player.speedBoosts++ == 0) player.moveSpeed *= 1.5f;
         yield return new WaitForSeconds(duration);
-        player.moveSpeed = originalSpeed;
+        if (--player.speedBoosts == 0) player.moveSpeed /= 1.5f;
     }
 
     System.Collections.IEnumerator MultiShotBoost(PlayerController player)
     {
-        int originalProjectiles = player.projectilesPerShot;
-        player.projectilesPerShot *= 2;
+        if (player.multiShotBoosts++ == 0) player.projectilesPerShot *= 2;
         yield return new WaitForSeconds(duration);
-        player.projectilesPerShot = originalProjectiles;
+        if (--player.multiShotBoosts == 0) player.projectilesPerShot /= 2;
     }
 }

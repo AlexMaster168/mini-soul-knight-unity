@@ -175,6 +175,8 @@ public class RoomManager : MonoBehaviour
         DungeonGenerator.Instance.RoomCleared(roomData);
     }
 
+    [HideInInspector] public Enemy lastSpawned;   // последний созданный враг (нужен боссам для прислужников)
+
     public void SpawnEnemy(Vector2 position, string type, int floor)
     {
         GameObject enemy = new GameObject("Enemy_" + type);
@@ -210,6 +212,7 @@ public class RoomManager : MonoBehaviour
         }
 
         Enemy e = enemy.AddComponent<Enemy>();
+        lastSpawned = e;
         e.roomManager = this;
 
         float hpMul = isBoss ? 0.75f + 0.25f * (floor - 1) : 1f + 0.3f * (floor - 1);

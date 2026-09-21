@@ -7,10 +7,12 @@ public class UpgradeDef
 {
     public string id, description;
     public int maxLevel, basePrice, step;
+    public int freeLevels;   // сколько уровней доступно до 3 этажа (остальные открываются с 3 этажа)
     public Color color;
 
-    public UpgradeDef(string id, int maxLevel, int basePrice, int step, Color color, string description)
+    public UpgradeDef(string id, int maxLevel, int freeLevels, int basePrice, int step, Color color, string description)
     {
+        this.freeLevels = freeLevels;
         this.id = id;
         this.maxLevel = maxLevel;
         this.basePrice = basePrice;
@@ -24,14 +26,24 @@ public class UpgradeDef
 
 public static class UpgradeCatalog
 {
+    public const int DeepFloor = 3;   // с этого этажа открываются новые улучшения и высокие уровни
+
     public static readonly UpgradeDef[] All =
     {
-        new UpgradeDef("Armor Plating", 5, 200, 100, new Color(0.4f, 0.7f, 1f),
+        new UpgradeDef("Armor Plating", 10, 5, 200, 100, new Color(0.4f, 0.7f, 1f),
             "Reinforced protection. Each level: +30 max armor (filled instantly) and -6% damage from every hit."),
-        new UpgradeDef("Vitality", 5, 150, 100, new Color(0.35f, 0.9f, 0.4f),
+        new UpgradeDef("Vitality", 10, 5, 150, 100, new Color(0.35f, 0.9f, 0.4f),
             "Each level: +30 max HP and heals you for 30."),
-        new UpgradeDef("Firepower", 5, 250, 150, new Color(1f, 0.55f, 0.2f),
+        new UpgradeDef("Firepower", 10, 5, 250, 150, new Color(1f, 0.55f, 0.2f),
             "Each level: +15% damage with every weapon, robots included."),
+        new UpgradeDef("Energy Core", 8, 0, 180, 90, new Color(0.3f, 0.6f, 1f),
+            "Each level: +60 max energy and restores 60 energy."),
+        new UpgradeDef("Recharge", 5, 0, 200, 100, new Color(0.5f, 0.9f, 1f),
+            "Each level: +1.5 energy regeneration per second."),
+        new UpgradeDef("Swiftness", 5, 0, 200, 100, new Color(1f, 0.95f, 0.4f),
+            "Each level: +5% movement speed."),
+        new UpgradeDef("Dash Drive", 5, 0, 220, 110, new Color(0.8f, 0.5f, 1f),
+            "Each level: the dash recharges 8% faster."),
     };
 
     public static UpgradeDef Get(string id)
@@ -68,7 +80,7 @@ public class PlayerUpgrades : MonoBehaviour
             case "Armor Plating":
                 pc.maxArmor += 30;
                 pc.armor = Mathf.Min(pc.maxArmor, pc.armor + 30);
-                pc.damageReduction = Mathf.Min(0.35f, pc.damageReduction + 0.06f);
+                pc.damageReduction = Mathf.Min(0.6f, pc.damageReduction + 0.06f);
                 break;
             case "Vitality":
                 pc.maxHealth += 30;
@@ -76,6 +88,19 @@ public class PlayerUpgrades : MonoBehaviour
                 break;
             case "Firepower":
                 pc.damageMultiplier += 0.15f;
+                break;
+            case "Energy Core":
+                pc.maxEnergy += 60;
+                pc.currentEnergy = Mathf.Min(pc.maxEnergy, pc.currentEnergy + 60);
+                break;
+            case "Recharge":
+                pc.energyRegenRate += 1.5f;
+                break;
+            case "Swiftness":
+                pc.moveSpeed *= 1.05f;
+                break;
+            case "Dash Drive":
+                pc.dashCooldown *= 0.92f;
                 break;
         }
     }
@@ -263,7 +288,7 @@ public class MeteorStrike : MonoBehaviour
         {
             if (!h.CompareTag("Enemy")) continue;
             Enemy e = h.GetComponent<Enemy>();
-            if (e != null) e.TakeDamage(damage, ((Vector2)e.transform.position - pos).normalized);
+            if (e != null) e.TakeAbilityDamage(damage, ((Vector2)e.transform.position - pos).normalized);
         }
 
         GameObject ring = new GameObject("MeteorBlast");

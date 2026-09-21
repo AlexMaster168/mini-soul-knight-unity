@@ -11,8 +11,8 @@ public static class Loc
     static readonly string[] pairs =
     {
         // ---------- HUD ----------
-        "WASD Move | Click Shoot | Space Dash | 1-8 Weapons | 9 Blade | Q Next | E Shop | Tab Stats",
-        "WASD рух | Клік - стрільба | Пробіл - ривок | 1-8 зброя | 9 клинок | Q далі | E крамниця | Tab стати",
+        "WASD Move | Click Shoot | Space Dash | 1-8 Weapons | 9 Blade | Q Next | E Shop | Tab Stats | B Abilities",
+        "WASD рух | Клік - стрільба | Пробіл - ривок | 1-8 зброя | 9 клинок | Q далі | E крамниця | Tab стати | B здібності",
         "Floor", "Поверх", "Lobby", "Лобі", "Score", "Рахунок", "Gold", "Золото", "Armor", "Броня",
         "NO ENERGY!", "НЕМАЄ ЕНЕРГІЇ!", "Low Energy!", "Мало енергії!", "PLAYER STATS", "ХАРАКТЕРИСТИКИ",
         "HP:", "Здоров'я:", "Energy:", "Енергія:", "Armor:", "Броня:", "Damage:", "Шкода:", "Fire Rate:", "Скорострільність:",
@@ -116,7 +116,7 @@ public static class Loc
         "Life Surge", "Сплеск життя", "Bullet Storm", "Шторм куль", "Time Freeze", "Зупинка часу", "Guardian Shield", "Щит охоронця", "Overdrive", "Форсаж",
         "Calls down 16 meteors over 3 seconds on the enemies' heads. Each blast deals 260 damage in a wide area.",
         "Скидає 16 метеоритів за 3 секунди прямо на голови ворогів. Кожен вибух завдає 260 шкоди по великій області.",
-        "Wipes out EVERY enemy in the room. Bosses lose 30% of their max HP.", "Знищує КОЖНОГО ворога в кімнаті. Боси втрачають 30% макс. здоров'я.",
+        "Wipes out every enemy of the current wave. Bosses lose 30% of their max HP.", "Знищує всіх ворогів поточної хвилі. Боси втрачають 30% макс. здоров'я.",
         "10 seconds of godhood: invulnerable, x3 damage, free shots.", "10 секунд божественності: невразливість, x3 шкоди, безкоштовні постріли.",
         "Shockwave that blasts every enemy around you for heavy damage and wipes all enemy bullets.", "Ударна хвиля кидає всіх ворогів навколо, завдає важкої шкоди і стирає всі ворожі кулі.",
         "Instantly restores 80 HP and grants 40 armor.", "Миттєво відновлює 80 здоров'я і дає 40 броні.",
@@ -139,7 +139,7 @@ public static class Loc
         // ---------- лобби, герои, скины ----------
         "[E] Hero Master - heroes & skins", "[E] Майстер героїв - герої та скіни", "Step into the portal to START THE RUN", "Зайди в портал, щоб ПОЧАТИ ЗАБІГ",
         "HERO MASTER", "МАЙСТЕР ГЕРОЇВ", "Heroes", "Герої", "Skins", "Скіни", "Crystals:", "Кристали:", "Hero  -  female", "Героїня", "Hero  -  male", "Герой",
-        "Skin - works on every hero", "Скін - підходить кожному герою", "Changes the colors of your hero.", "Змінює кольори твого героя.",
+        "Skin - works on every hero", "Скін - підходить кожному герою", "Changes the colors of your hero.", "Змінює кольори твого героя.", "Boys get different trousers,", "Хлопці отримують інші штани,", "girls get different hair and a different skirt.", "дівчата - інше волосся й іншу спідницю.",
         "Equipped", "Одягнено", "Press Enter to equip", "Натисни Enter, щоб одягнути", "(Enter to buy)", "(Enter - купити)",
         "Not enough crystals (earn them by playing runs)", "Не вистачає кристалів (заробляй їх у забігах)", "Unlocked", "Відкрито",
         "Up/Down select  |  T heroes / skins  |  G boy / girl  |  Enter buy or equip  |  E close", "Вгору/Вниз - вибір  |  T - герої / скіни  |  G - хлопець / дівчина  |  Enter - купити чи одягнути  |  E - закрити",
@@ -155,6 +155,34 @@ public static class Loc
         "Burning sorceress: +25% damage, huge energy pool. Starts with a Grenade Launcher.", "Палаюча чарівниця: +25% шкоди, величезний запас енергії. Стартує з гранатометом.",
         "Disciplined blade master: 180 HP, 30 armor, fast dash, +15% damage. Starts with a Katana.", "Дисциплінований майстер клинка: 180 здоров'я, 30 броні, швидкий ривок, +15% шкоди. Стартує з катаною.",
         "Graceful warrior: very fast dash and +20% damage. Starts with a Chakram.", "Витончена воїтелька: дуже швидкий ривок і +20% шкоди. Стартує з чакрамом.",
+        "Cleric", "Клірик", "Saint", "Свята", "Pirate", "Пірат", "Corsair", "Корсарка", "Shinobi", "Шинобі", "Kunoichi", "Кунойчі",
+        "Holy warrior: 190 HP, 30 armor, -12% damage taken, fast energy regeneration. Starts with a Mace.", "Святий воїн: 190 здоров'я, 30 броні, -12% отримуваної шкоди, швидке відновлення енергії. Стартує з булавою.",
+        "Sea dog: 170 HP, +15% damage and a blunderbuss that clears the deck.", "Морський вовк: 170 здоров'я, +15% шкоди і мушкетон, що розчищає палубу.",
+        "Silent shadow: the fastest runner, very short dash cooldown. Starts with a Shock star gun.", "Безшумна тінь: найшвидший бігун, дуже короткий час перезарядки ривка. Стартує зі Шок-зорями.",
+        "Radiant priestess: huge energy pool, -6% damage taken, +10% damage. Starts with an IceGun.", "Сяюча жриця: величезний запас енергії, -6% отримуваної шкоди, +10% шкоди. Стартує з крижаною гарматою.",
+        "Daring pirate captain: quick dash, +20% damage. Starts with a DesertEagle.", "Відчайдушна піратська капітанка: швидкий ривок, +20% шкоди. Стартує з Дезерт Іґлом.",
+        "Deadly shadow dancer: top speed, dash almost always ready, +15% damage. Starts with a ShurikenFan.", "Смертельна танцівниця тіней: максимальна швидкість, ривок майже завжди готовий, +15% шкоди. Стартує з віялом сюрікенів.",
+        "Blossom", "Цвіт вишні", "Ocean", "Океан", "Forest", "Ліс", "Royal", "Королівський", "Lava", "Лава", "Snow", "Сніг", "Candy", "Цукерка", "Midnight", "Опівніч",
+        "Schoolboy", "Школяр", "Schoolgirl", "Школярка",
+        "Navy Blazer", "Синій піджак", "Sailor", "Матроска", "Gray Blazer", "Сірий піджак", "Sport", "Спорт", "Winter Coat", "Зимове пальто", "Cardigan", "Кардиган",
+        "Cheerful student in a school uniform: quick, nimble. Starts with a Boomerang.", "Життєрадісний учень у шкільній формі: швидкий і моторний. Стартує з бумерангом.",
+        "Clever student in a school uniform: quick, with extra energy. Starts with a Star Wand.", "Розумна учениця у шкільній формі: швидка, з додатковою енергією. Стартує із Зірковою паличкою.",
+        "USED", "ВЖЕ", "Already used in this room", "Вже використано в цій кімнаті", "Can be used only once in each room.", "Можна використати лише один раз у кожній кімнаті.",
+        "Unlocks from dungeon floor", "Відкривається з поверху",
+        "Energy Core", "Енергоядро", "Recharge", "Підзарядка", "Swiftness", "Прудкість", "Dash Drive", "Привід ривка",
+        "Each level: +60 max energy and restores 60 energy.", "Кожен рівень: +60 макс. енергії й відновлює 60 енергії.",
+        "Each level: +1.5 energy regeneration per second.", "Кожен рівень: +1.5 відновлення енергії за секунду.",
+        "Each level: +5% movement speed.", "Кожен рівень: +5% швидкості руху.",
+        "Each level: the dash recharges 8% faster.", "Кожен рівень: ривок перезаряджається на 8% швидше.",
+        "Clear all rooms on this floor to open the boss door", "Зачисти всі кімнати поверху, щоб відкрити двері боса", "The boss door is open!", "Двері боса відчинено!",
+        "16 meteors on enemies", "16 метеоритів на ворогів", "Kills the current wave", "Знищує поточну хвилю", "Godmode for 10s", "Режим бога на 10с",
+        "Blast and clear bullets", "Вибух і стирає кулі", "+80 HP and +40 armor", "+80 здоров'я і +40 броні", "Ring of 24 shots", "Кільце з 24 пострілів",
+        "Freezes enemies 4s", "Заморожує ворогів на 4с", "Invulnerable for 5s", "Невразливість на 5с", "Free, fast fire for 6s", "Безкоштовна швидка стрільба 6с",
+        "SUPER ABILITIES", "СУПЕР-ЗДІБНОСТІ", "B / Esc - close  |  Z / X / C - use  |  each ability works once per room", "B / Esc - закрити  |  Z / X / C - використати  |  кожна здібність діє раз на кімнату",
+        "Empty slot", "Порожній слот", "Buy super abilities from a merchant (E). They cost a lot but are extremely powerful.", "Купуй супер-здібності в торговця (E). Вони дорогі, але надзвичайно потужні.",
+        "Cooldown", "Перезарядка", "[E] Open the door", "[E] Відчинити двері",
+        "Rampage!", "Несамовитий натиск!", "Army of the Dead!", "Армія мерців!", "Inferno!", "Пекло!", "Earthquake!", "Землетрус!", "Broodstorm!", "Буря виводку!", "Singularity!", "Сингулярність!",
+        "The boss is enraged!", "Бос у люті!", "The boss grows stronger!", "Бос стає сильнішим!",
         "Classic", "Класика", "Crimson", "Багряний", "Emerald", "Смарагдовий", "Shadow", "Тінь", "Frost", "Іній", "Sunset", "Захід сонця", "Neon", "Неон", "Golden", "Золотий",
         "Balanced hero. Sturdy, reliable, no tricks.", "Збалансований герой. Міцний, надійний, без фокусів.",
         "Fast and slippery: quick dash, high speed, starts with a dagger.", "Швидкий і вертикий: швидкий ривок, висока швидкість, стартує з кинджалом.",
@@ -167,6 +195,13 @@ public static class Loc
         "Tough fighter: 240 HP, 40 armor, -8% damage taken, +10% damage. Starts with an Axe.", "Витривала бійчиня: 240 здоров'я, 40 броні, -8% отримуваної шкоди, +10% шкоди. Стартує із сокирою.",
         "Starts every run with a rapid-fire Gunner Bot and a Plasma gun.", "Кожен забіг стартує зі скорострільним роботом-стрільцем і плазмовою зброєю.",
     };
+
+    // Язык интерфейса: true - украинский (по умолчанию), false - английский
+    public static bool Ukrainian
+    {
+        get { return PlayerPrefs.GetInt("lang_uk", 1) == 1; }
+        set { PlayerPrefs.SetInt("lang_uk", value ? 1 : 0); PlayerPrefs.Save(); }
+    }
 
     static Dictionary<string, string> map;
     static Regex rx;
@@ -209,12 +244,28 @@ public static class Loc
     }
 }
 
-// Каждый кадр переводит все активные тексты интерфейса и надписи в мире
+// Каждый кадр приводит все активные тексты к выбранному языку. Английский оригинал запоминается,
+// поэтому язык можно переключать на лету, даже для надписей, которые игра задаёт один раз.
 public class Localizer : MonoBehaviour
 {
+    private class Entry { public string orig, shown; }
+
+    private readonly Dictionary<Object, Entry> entries = new Dictionary<Object, Entry>();
     private Text[] texts = new Text[0];
     private TextMesh[] meshes = new TextMesh[0];
     private float nextScan;
+
+    // возвращает текст, который должен отображаться; orig обновляется, если игра сама поменяла надпись
+    string Resolve(Object key, string current)
+    {
+        Entry e;
+        if (!entries.TryGetValue(key, out e)) { e = new Entry(); entries[key] = e; e.orig = current; }
+        else if (current != e.shown) e.orig = current;
+
+        string want = Loc.Ukrainian ? Loc.T(e.orig) : e.orig;
+        e.shown = want;
+        return want;
+    }
 
     void LateUpdate()
     {
@@ -223,6 +274,13 @@ public class Localizer : MonoBehaviour
             nextScan = Time.unscaledTime + 0.4f;
             texts = FindObjectsByType<Text>(FindObjectsInactive.Include, FindObjectsSortMode.None);
             meshes = FindObjectsByType<TextMesh>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+
+            if (entries.Count > 2000)
+            {
+                List<Object> dead = new List<Object>();
+                foreach (var kv in entries) if (kv.Key == null) dead.Add(kv.Key);
+                foreach (Object o in dead) entries.Remove(o);
+            }
         }
 
         for (int i = 0; i < texts.Length; i++)
@@ -230,16 +288,17 @@ public class Localizer : MonoBehaviour
             Text t = texts[i];
             if (t == null || !t.gameObject.activeInHierarchy) continue;
             string s = t.text;
-            string r = Loc.T(s);
-            if (!ReferenceEquals(r, s) && r != s) t.text = r;
+            string r = Resolve(t, s);
+            if (r != s) t.text = r;
         }
 
         for (int i = 0; i < meshes.Length; i++)
         {
             TextMesh m = meshes[i];
             if (m == null) continue;
-            string r = Loc.T(m.text);
-            if (r != m.text) m.text = r;
+            string s = m.text;
+            string r = Resolve(m, s);
+            if (r != s) m.text = r;
         }
     }
 }

@@ -103,8 +103,90 @@ public class PixelCanvas
             }
     }
 
+    // Включает мягкую "реалистичную" обработку крупных спрайтов (персонажи, враги, боссы)
+    public static bool Realistic = false;
+
+    // Объём: свет сверху-слева, тени снизу-справа, чёрный контур заменяется тёмным оттенком цвета персонажа,
+    // затем спрайт увеличивается вдвое и сглаживается
+    Color[] Enhance(out int nw, out int nh)
+    {
+        Color[] src = (Color[])px.Clone();
+        Color[] lit = new Color[w * h];
+        System.Func<int, int, bool> solid = (x, y) => x >= 0 && x < w && y >= 0 && y < h && src[y * w + x].a > 0.01f;
+        for (int y = 0; y < h; y++)
+            for (int x = 0; x < w; x++)
+            {
+                Color col = src[y * w + x];
+                if (col.a <= 0.01f) continue;
+                bool dark = col.r + col.g + col.b < 0.55f;
+                bool edge = !solid(x - 1, y) || !solid(x + 1, y) || !solid(x, y - 1) || !solid(x, y + 1);
+                if (dark && edge)
+                {
+                    // контур: тёмная версия ближайшего цвета вместо чистого чёрного
+                    Color n = col;
+                    float best = 0f;
+                    for (int dy = -1; dy <= 1; dy++)
+                        for (int dx = -1; dx <= 1; dx++)
+                        {
+                            if (!solid(x + dx, y + dy)) continue;
+                            Color q = src[(y + dy) * w + x + dx];
+                            float b = q.r + q.g + q.b;
+                            if (b > best && b >= 0.55f) { best = b; n = q; }
+                        }
+                    if (best > 0f) col = new Color(n.r * 0.32f, n.g * 0.32f, n.b * 0.34f, 1f);
+                }
+                else
+                {
+                    float ny = (y + 0.5f) / h, nx = (x + 0.5f) / w;
+                    float k = 1f + 0.16f * (ny - 0.5f) - 0.10f * (nx - 0.5f);
+                    if (!solid(x - 1, y) || !solid(x, y + 1)) k *= 1.12f;       // свет по левой и верхней кромке
+                    if (!solid(x + 1, y) || !solid(x, y - 1)) k *= 0.80f;       // тень по правой и нижней кромке
+                    col = new Color(Mathf.Clamp01(col.r * k), Mathf.Clamp01(col.g * k), Mathf.Clamp01(col.b * k), col.a);
+                }
+                lit[y * w + x] = col;
+            }
+
+        nw = w * 2; nh = h * 2;
+        Color[] up = new Color[nw * nh];
+        for (int y = 0; y < nh; y++)
+            for (int x = 0; x < nw; x++)
+                up[y * nw + x] = lit[(y / 2) * w + x / 2];
+
+        // мягкое сглаживание (фильтр 3x3 с учётом прозрачности)
+        Color[] outp = new Color[nw * nh];
+        for (int y = 0; y < nh; y++)
+            for (int x = 0; x < nw; x++)
+            {
+                float r = 0, g = 0, b = 0, a = 0, wt = 0;
+                for (int dy = -1; dy <= 1; dy++)
+                    for (int dx = -1; dx <= 1; dx++)
+                    {
+                        int xx = x + dx, yy = y + dy;
+                        if (xx < 0 || xx >= nw || yy < 0 || yy >= nh) continue;
+                        float k = (dx == 0 && dy == 0) ? 4f : (dx == 0 || dy == 0) ? 2f : 1f;
+                        Color q = up[yy * nw + xx];
+                        r += q.r * q.a * k; g += q.g * q.a * k; b += q.b * q.a * k; a += q.a * k; wt += k;
+                    }
+                if (a <= 0.0001f) continue;
+                outp[y * nw + x] = new Color(r / a, g / a, b / a, a / wt);
+            }
+        return outp;
+    }
+
     public Sprite ToSprite(float pivotX = 0.5f, float pivotY = 0.5f, float ppu = -1)
     {
+        if (Realistic && h >= 24)
+        {
+            int nw, nh;
+            Color[] big = Enhance(out nw, out nh);
+            Texture2D bt = new Texture2D(nw, nh, TextureFormat.RGBA32, false);
+            bt.filterMode = FilterMode.Bilinear;
+            bt.wrapMode = TextureWrapMode.Clamp;
+            bt.SetPixels(big);
+            bt.Apply();
+            return Sprite.Create(bt, new Rect(0, 0, nw, nh), new Vector2(pivotX, pivotY), (ppu > 0 ? ppu : w) * 2f);
+        }
+
         Texture2D tex = new Texture2D(w, h, TextureFormat.RGBA32, false);
         tex.filterMode = FilterMode.Point;
         tex.wrapMode = TextureWrapMode.Clamp;
@@ -596,12 +678,15 @@ public static class PixelArt
 
     // ================= ГЕРОИ (32x32, аниме-стиль): персонаж = дизайн, скин = цвета одежды =================
 
-    public static Sprite Hero(string kind, Color main, Color accent, bool female = false)
+    public static Sprite Hero(string kind, Color main, Color accent, bool female = false, Color? pants = null, Color? skirt = null, Color? hairColor = null)
     {
-        return Cached(Key("heroA" + kind + (female ? "F" : "M"), main) + ColorUtility.ToHtmlStringRGBA(accent), () =>
+        return Cached(Key("heroA" + kind + (female ? "F" : "M"), main) + ColorUtility.ToHtmlStringRGBA(accent) +
+                      (pants.HasValue ? ColorUtility.ToHtmlStringRGBA(pants.Value) : "-") + (skirt.HasValue ? ColorUtility.ToHtmlStringRGBA(skirt.Value) : "-") + (hairColor.HasValue ? ColorUtility.ToHtmlStringRGBA(hairColor.Value) : "-"), () =>
         {
             var c = new PixelCanvas(32, 32);
             Color dark = Dk(main, 0.6f);
+            Color pantsC = pants ?? dark;      // штаны парней
+            Color skirtC = skirt ?? main;      // юбка девушек
             Color skin = new Color(1f, 0.88f, 0.78f);
             Color hair, hairD, eye;
             switch (kind)
@@ -612,21 +697,27 @@ public static class PixelArt
                 case "Archer": hair = female ? new Color(0.5f, 0.85f, 0.45f) : new Color(0.3f, 0.6f, 0.25f); eye = female ? new Color(0.3f, 0.8f, 0.9f) : new Color(1f, 0.75f, 0.2f); break;
                 case "Pyro": hair = female ? new Color(1f, 0.3f, 0.4f) : new Color(1f, 0.5f, 0.1f); eye = female ? new Color(1f, 0.6f, 0.1f) : new Color(1f, 0.85f, 0.2f); break;
                 case "Samurai": hair = female ? new Color(0.2f, 0.25f, 0.5f) : new Color(0.12f, 0.1f, 0.15f); eye = female ? new Color(1f, 0.5f, 0.6f) : new Color(0.85f, 0.2f, 0.2f); break;
+                case "Priest": hair = female ? new Color(1f, 0.95f, 0.75f) : new Color(0.9f, 0.8f, 0.55f); eye = female ? new Color(0.5f, 0.9f, 0.7f) : new Color(0.4f, 0.7f, 1f); break;
+                case "Pirate": hair = female ? new Color(0.9f, 0.3f, 0.2f) : new Color(0.45f, 0.2f, 0.1f); eye = female ? new Color(0.2f, 0.8f, 0.7f) : new Color(0.3f, 0.7f, 0.9f); break;
+                case "Ninja": hair = female ? new Color(0.85f, 0.8f, 0.95f) : new Color(0.2f, 0.2f, 0.3f); eye = female ? new Color(0.75f, 0.5f, 1f) : new Color(0.3f, 0.9f, 1f); break;
+                case "School": hair = female ? new Color(0.32f, 0.18f, 0.12f) : new Color(0.15f, 0.12f, 0.12f); eye = female ? new Color(0.35f, 0.55f, 0.85f) : new Color(0.5f, 0.35f, 0.2f); break;
                 case "Engineer": hair = female ? new Color(0.2f, 0.78f, 0.78f) : new Color(0.5f, 0.32f, 0.2f); eye = female ? new Color(1f, 0.6f, 0.2f) : new Color(0.3f, 0.85f, 0.4f); break;
                 default: hair = female ? new Color(1f, 0.85f, 0.4f) : new Color(0.62f, 0.36f, 0.18f); eye = new Color(0.3f, 0.6f, 1f); break;
             }
+            if (female && hairColor.HasValue) hair = hairColor.Value;   // скин задаёт волосы девушек
             hairD = Dk(hair, 0.7f);
             bool longHair = female || kind == "Mage";
 
             // --- задние волосы ---
             c.Ell(16, 21.5f, 9.6f, 9f, hair);
-            if (longHair) { c.Rect(6, 6, 15, 20, hair); c.Rect(6, 6, 7, 12, hairD); }
+            if (longHair) { c.Rect(5, female ? 1 : 6, 15, 20, hair); c.Rect(5, female ? 1 : 6, 7, 12, hairD); }
             if (kind == "Mage" && female) { c.Ell(5.5f, 15, 3.2f, 8f, hair); }
             if (kind == "Engineer" && female) { c.Ell(5.5f, 22, 3f, 7f, hair); }
             if (kind == "Tank" && female) { c.Rect(5, 5, 15, 18, hair); }
 
             // --- тело ---
-            c.Rect(12, 1, 14, 5, female ? skin : dark);
+            c.Rect(12, 1, 14, 5, female ? skin : pantsC);
+            if (!female) c.Rect(11, 5, 15, 6, pantsC);
             c.Rect(11, 0, 14, 1, K);
             c.Rect(11, 6, 15, 13, main);
             c.Rect(11, 8, 15, 8, accent);
@@ -689,26 +780,116 @@ public static class PixelArt
                     else { c.Tri(9, 28, 12, 28, 9, 31.9f, hair); c.Tri(12, 29, 16, 29, 14, 31.9f, hair); c.Line(10, 19, 10, 21, R, 1f); }
                     break;
                 case "Archer":
-                    c.Rect(9, 25, 15, 26, main);
-                    c.Rect(9, 27, 13, 27, main);
                     c.Line(11, 13, 15, 7, accent, 1f);
                     c.Rect(8, 8, 9, 10, accent);
-                    c.Rect(11, 3, 15, 5, dark);
+                    if (female)
+                    {
+                        // без капюшона: лента в волосах и юбка
+                        c.Rect(9, 25, 15, 25, accent);
+                        c.Rect(10, 3, 15, 7, main);
+                        c.Rect(10, 3, 15, 3, accent);
+                    }
+                    else
+                    {
+                        // капюшон с острым верхом
+                        c.Rect(8, 25, 15, 27, main);
+                        c.Tri(8, 27, 16, 27, 13, 31.5f, main);
+                        c.Rect(11, 3, 15, 5, pantsC);
+                    }
                     break;
                 case "Pyro":
-                    c.Rect(10, 2, 15, 12, main);
-                    c.Rect(10, 2, 15, 2, accent);
                     c.Ell(9, 13, 3f, 2f, accent);
-                    c.Ell(13.5f, 9, 1.4f, 1.7f, Y);
-                    c.Tri(9, 28, 13, 28, 10, 31.9f, hair); c.Tri(12, 29, 16, 29, 14.5f, 31.9f, O);
+                    if (female)
+                    {
+                        // платье и пылающая диадема
+                        c.Rect(10, 2, 15, 12, main);
+                        c.Rect(10, 2, 15, 2, accent);
+                        c.Ell(13.5f, 9, 1.4f, 1.7f, Y);
+                        c.Tri(10, 27, 13, 27, 11.5f, 31.5f, O); c.Tri(13, 27, 16, 27, 14.5f, 31.9f, Y);
+                    }
+                    else
+                    {
+                        // куртка нараспашку и огненные вихры
+                        c.Rect(11, 13, 15, 14, O);
+                        c.Rect(12, 8, 13, 12, Y);
+                        c.Tri(9, 28, 13, 28, 10, 31.9f, hair); c.Tri(12, 29, 16, 29, 14.5f, 31.9f, O);
+                    }
                     break;
                 case "Samurai":
-                    c.Rect(7, 12, 10, 14, accent);
-                    c.Rect(6, 9, 7, 13, accent);
                     c.Line(11, 13, 15, 8, accent, 1f);
                     c.Rect(9, 24, 15, 24, R);
-                    c.Ell(16, 29.5f, 2.4f, 2f, hair);
-                    c.Rect(15, 27, 16, 27, R);
+                    if (female)
+                    {
+                        // широкие рукава кимоно и высокий хвост
+                        c.Rect(5, 7, 8, 12, accent);
+                        c.Rect(10, 3, 15, 7, main);
+                        c.Rect(15, 27, 16, 28, R);
+                    }
+                    else
+                    {
+                        // наплечники и пучок
+                        c.Rect(7, 12, 10, 14, accent);
+                        c.Rect(6, 9, 7, 13, accent);
+                        c.Ell(16, 29.5f, 2.4f, 2f, hair);
+                        c.Rect(15, 27, 16, 27, R);
+                    }
+                    break;
+                case "Priest":
+                    c.Rect(10, 2, 15, 12, main);
+                    c.Rect(10, 2, 15, 2, accent);
+                    c.Rect(13, 8, 14, 12, Y); c.Rect(12, 11, 15, 11, Y);
+                    c.Rect(11, 30, 15, 30, Y); c.Px(10, 29, Y);
+                    if (female) { c.Rect(7, 12, 9, 25, main); c.Rect(8, 26, 15, 26, main); }
+                    else { c.Rect(9, 24, 15, 24, accent); }
+                    break;
+                case "Pirate":
+                    c.Rect(10, 10, 15, 13, accent);
+                    c.Rect(10, 8, 15, 8, Y);
+                    if (female)
+                    {
+                        // бандана
+                        c.Rect(8, 25, 15, 26, accent);
+                        c.Px(9, 17, Y);
+                        c.Rect(10, 3, 15, 7, main);
+                    }
+                    else
+                    {
+                        // треуголка и борода
+                        c.Ell(16, 26.5f, 11.5f, 2.2f, dark);
+                        c.Rect(11, 27, 15, 29, dark);
+                        c.Px(15, 28, W);
+                        c.Rect(12, 14, 15, 15, hair);
+                    }
+                    break;
+                case "Ninja":
+                    c.Rect(10, 14, 15, 17, dark);
+                    c.Rect(9, 24, 15, 24, S);
+                    if (female)
+                    {
+                        c.Rect(10, 3, 15, 7, main);
+                        c.Rect(10, 3, 15, 3, accent);
+                        c.Rect(15, 26, 16, 27, accent);
+                    }
+                    else
+                    {
+                        c.Tri(9, 28, 13, 28, 10, 31.9f, hair); c.Tri(12, 29, 16, 29, 14.5f, 31.9f, hair);
+                        c.Rect(11, 3, 15, 5, pantsC);
+                    }
+                    break;
+                case "School":
+                    c.Rect(14, 9, 15, 13, W);            // рубашка
+                    c.Rect(15, 9, 15, 12, accent);       // галстук
+                    c.Rect(11, 6, 11, 13, Dk(main, 0.85f));
+                    if (female)
+                    {
+                        c.Rect(11, 12, 15, 13, W);       // воротник
+                        c.Rect(15, 11, 15, 12, accent);  // бант
+                        c.Rect(10, 25, 15, 25, accent);  // ободок
+                    }
+                    else
+                    {
+                        c.Tri(9, 28, 13, 28, 10, 30.5f, hair);
+                    }
                     break;
                 default: // Engineer
                     c.Rect(6, 7, 8, 12, accent);
@@ -720,12 +901,40 @@ public static class PixelArt
                     break;
             }
 
-            // --- женский силуэт: лёгкий изгиб груди ---
+            // --- пол: у парней шире плечи, у девушек бант ---
+            if (!female) { c.Rect(9, 11, 10, 13, main); c.Rect(9, 13, 10, 13, Lt(main)); }
+            else if (kind != "Priest" && kind != "Pirate") { c.Rect(9, 27, 10, 28, accent); c.Px(8, 28, accent); c.Px(8, 27, accent); }
+
+            // --- женский силуэт: талия, пышная юбка, чётко видимая грудь ---
             if (female)
             {
-                c.Rect(10, 10, 10, 11, main);
-                c.Rect(11, 9, 15, 9, Dk(main, 0.75f));
-                c.Px(12, 11, Lt(main));
+                // юбка-трапеция расширяется книзу
+                for (int y = 2; y <= 8; y++) c.Rect(10 - (8 - y) / 2, y, 15, y, skirtC);
+                c.Rect(7, 2, 15, 2, accent);
+                // талия: пояс выделяет узкую линию
+                c.Rect(11, 8, 15, 8, accent);
+                // грудь: светлые выпуклости, тёмная линия под ними и по центру
+                Color bustC = Color.Lerp(main, Color.white, 0.25f);
+                if (kind != "School")
+                {
+                c.Ell(12.4f, 9.4f, 3.7f, 1.7f, Dk(main, 0.5f));   // тень под грудью
+                c.Ell(12.2f, 11.4f, 3.9f, 3f, bustC);
+                c.Rect(8, 10, 8, 12, Dk(main, 0.5f));
+                c.Px(15, 10, Dk(main, 0.5f)); c.Px(15, 11, Dk(main, 0.5f)); c.Px(15, 12, Dk(main, 0.5f));
+                c.Px(10, 13, Dk(main, 0.6f)); c.Px(11, 13, Dk(main, 0.6f));
+                c.Px(10, 12, W); c.Px(11, 12, Lt(bustC)); c.Px(10, 11, Lt(bustC));
+                }
+                else
+                {
+                    // школьная юбка в складку и белые гольфы
+                    for (int x = 8; x <= 15; x += 2) c.Rect(x, 3, x, 7, Dk(skirtC, 0.78f));
+                    c.Rect(12, 1, 14, 2, W);
+                }
+                // вырез: полоска кожи у шеи
+                c.Rect(14, 13, 15, 13, skin); c.Px(15, 12, skin);
+                // длинные пряди спереди по обе стороны от плеч
+                c.Rect(9, 12, 9, 18, hair);
+                c.Px(10, 14, hair); c.Px(10, 15, hair);
             }
 
             c.MirrorLeft();
@@ -737,13 +946,29 @@ public static class PixelArt
                 c.Line(28, 17, 27, 10, hair, 2.4f);
                 c.Rect(24, 24, 25, 25, accent);
             }
-            if (kind == "Archer") c.Line(22, 27, 27, 31, accent, 1.4f);
+            if (kind == "Archer" && !female) c.Line(22, 27, 27, 31, accent, 1.4f);
+            if (kind == "Archer" && female) { c.Line(24, 22, 27, 9, hair, 2.6f); c.Rect(25, 8, 26, 9, accent); }
             if (kind == "Samurai") { c.Line(20, 5, 26, 15, S, 1.4f); c.Rect(19, 4, 20, 5, Brown); }
+            if (kind == "Samurai" && female) { c.Line(20, 28, 27, 24, hair, 2.4f); c.Line(27, 24, 26, 14, hair, 2.2f); }
+            if (kind == "Pirate" && !female) { c.Rect(18, 19, 21, 22, K); c.Line(17, 23, 24, 21, K, 1f); }
+            if (kind == "Pirate" && female) { c.Line(23, 25, 27, 22, accent, 2f); c.Line(23, 25, 27, 27, accent, 2f); }
+            if (kind == "Ninja" && !female) c.Line(22, 14, 27, 9, accent, 2f);
+            if (kind == "Ninja" && female) { c.Line(23, 26, 28, 20, hair, 3f); c.Line(28, 20, 27, 12, hair, 2.4f); c.Rect(23, 25, 24, 26, accent); }
+            if (kind == "Priest" && female) c.Line(22, 26, 24, 14, main, 2f);
+            if (kind == "School" && !female) { c.Rect(22, 7, 26, 15, accent); c.Rect(22, 15, 26, 15, Dk(accent, 0.7f)); c.Line(22, 15, 17, 13, accent, 1f); }
+            if (kind == "School" && female) { c.Rect(21, 4, 26, 9, Brown); c.Rect(21, 9, 26, 9, DBrown); c.Line(21, 9, 16, 13, Brown, 1f); }
             if (!female && kind == "Rogue") c.Line(20, 13, 25, 8, accent, 2f);
             if (kind == "Tank" && !female) c.Rect(22, 18, 22, 20, R);
             if (kind == "Mage" && !female) c.Line(22, 13, 26, 6, hair, 2f);
-            c.Outline(K);
-            return c.ToSprite();
+            // подросток: голова та же, а тело и ноги вытянуты (32x32 -> 32x40), ноги остаются на месте
+            var t = new PixelCanvas(32, 40);
+            for (int ty = 0; ty < 40; ty++)
+            {
+                int sy = ty >= 22 ? ty - 8 : (ty * 14) / 22;
+                for (int x = 0; x < 32; x++) t.px[ty * 32 + x] = c.px[sy * 32 + x];
+            }
+            t.Outline(K);
+            return t.ToSprite(0.5f, 0.4f);
         });
     }
 

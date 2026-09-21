@@ -26,10 +26,17 @@ public class SkinDef
     public string id;
     public int price;
     public Color main, accent;
+    public Color? pants, skirt, hair;   // штаны парней, юбка и волосы девушек
 
     public SkinDef(string id, int price, Color main, Color accent)
     {
         this.id = id; this.price = price; this.main = main; this.accent = accent;
+    }
+
+    public SkinDef Set(Color pants, Color skirt, Color? hair)
+    {
+        this.pants = pants; this.skirt = skirt; this.hair = hair;
+        return this;
     }
 }
 
@@ -56,6 +63,14 @@ public static class MetaProgress
             "Fire mage: +20% damage and a big energy pool. Starts with a Flamethrower.") { kind = "Pyro" },
         new CharacterDef("Samurai", 1500, 180, 200, 30, 8.6f, 5f, 0.7f, 1.15f, 0.05f, "Katana", null,
             "Disciplined blade master: 180 HP, 30 armor, fast dash, +15% damage. Starts with a Katana.") { kind = "Samurai" },
+        new CharacterDef("Cleric", 1700, 190, 260, 30, 7.6f, 7f, 1f, 1f, 0.12f, "Mace", null,
+            "Holy warrior: 190 HP, 30 armor, -12% damage taken, fast energy regeneration. Starts with a Mace.") { kind = "Priest" },
+        new CharacterDef("Pirate", 1900, 170, 220, 0, 8.2f, 6f, 0.9f, 1.15f, 0f, "Blunderbuss", null,
+            "Sea dog: 170 HP, +15% damage and a blunderbuss that clears the deck.") { kind = "Pirate" },
+        new CharacterDef("Shinobi", 2100, 100, 220, 0, 10.6f, 6f, 0.5f, 1.1f, 0f, "Shock", null,
+            "Silent shadow: the fastest runner, very short dash cooldown. Starts with a Shock star gun.") { kind = "Ninja" },
+        new CharacterDef("Schoolboy", 500, 120, 220, 0, 9f, 6f, 0.8f, 1.05f, 0f, "Boomerang", null,
+            "Cheerful student in a school uniform: quick, nimble. Starts with a Boomerang.") { kind = "School" },
 
         // женские герои
         new CharacterDef("Valkyrie", 300, 140, 210, 0, 8.4f, 5f, 0.9f, 1.05f, 0f, "Spear", null,
@@ -74,21 +89,49 @@ public static class MetaProgress
             "Burning sorceress: +25% damage, huge energy pool. Starts with a Grenade Launcher.") { kind = "Pyro", female = true },
         new CharacterDef("Sakura", 1600, 160, 220, 20, 9f, 5f, 0.6f, 1.2f, 0.05f, "Chakram", null,
             "Graceful warrior: very fast dash and +20% damage. Starts with a Chakram.") { kind = "Samurai", female = true },
+        new CharacterDef("Saint", 1800, 130, 320, 0, 8f, 9f, 1f, 1.1f, 0.06f, "IceGun", null,
+            "Radiant priestess: huge energy pool, -6% damage taken, +10% damage. Starts with an IceGun.") { kind = "Priest", female = true },
+        new CharacterDef("Corsair", 2000, 140, 240, 0, 9f, 6f, 0.6f, 1.2f, 0f, "DesertEagle", null,
+            "Daring pirate captain: quick dash, +20% damage. Starts with a DesertEagle.") { kind = "Pirate", female = true },
+        new CharacterDef("Kunoichi", 2200, 95, 240, 0, 10.8f, 7f, 0.45f, 1.15f, 0f, "ShurikenFan", null,
+            "Deadly shadow dancer: top speed, dash almost always ready, +15% damage. Starts with a ShurikenFan.") { kind = "Ninja", female = true },
+        new CharacterDef("Schoolgirl", 500, 115, 240, 0, 9.2f, 7f, 0.8f, 1.05f, 0f, "Star Wand", null,
+            "Clever student in a school uniform: quick, with extra energy. Starts with a Star Wand.") { kind = "School", female = true },
     };
 
     public static readonly SkinDef[] Skins =
     {
-        new SkinDef("Classic", 0, new Color(0.2f, 0.4f, 0.9f), new Color(0.15f, 0.3f, 0.7f)),
-        new SkinDef("Crimson", 80, new Color(0.85f, 0.2f, 0.2f), new Color(0.55f, 0.1f, 0.15f)),
-        new SkinDef("Emerald", 100, new Color(0.2f, 0.7f, 0.35f), new Color(0.1f, 0.45f, 0.2f)),
-        new SkinDef("Shadow", 150, new Color(0.25f, 0.2f, 0.35f), new Color(0.12f, 0.1f, 0.2f)),
-        new SkinDef("Frost", 150, new Color(0.6f, 0.85f, 1f), new Color(0.35f, 0.6f, 0.85f)),
-        new SkinDef("Sunset", 200, new Color(0.95f, 0.55f, 0.2f), new Color(0.75f, 0.25f, 0.35f)),
-        new SkinDef("Neon", 250, new Color(0.2f, 0.95f, 0.6f), new Color(0.85f, 0.2f, 0.9f)),
-        new SkinDef("Golden", 300, new Color(1f, 0.8f, 0.25f), new Color(0.75f, 0.55f, 0.1f)),
+        new SkinDef("Classic", 0, new Color(0.2f, 0.4f, 0.9f), new Color(0.15f, 0.3f, 0.7f)).Set(new Color(0.15f, 0.2f, 0.4f), new Color(0.2f, 0.4f, 0.9f), null),
+        new SkinDef("Crimson", 80, new Color(0.85f, 0.2f, 0.2f), new Color(0.55f, 0.1f, 0.15f)).Set(new Color(0.3f, 0.1f, 0.12f), new Color(0.8f, 0.15f, 0.25f), new Color(0.55f, 0.1f, 0.2f)),
+        new SkinDef("Emerald", 100, new Color(0.2f, 0.7f, 0.35f), new Color(0.1f, 0.45f, 0.2f)).Set(new Color(0.1f, 0.3f, 0.15f), new Color(0.15f, 0.65f, 0.4f), new Color(0.2f, 0.6f, 0.35f)),
+        new SkinDef("Shadow", 150, new Color(0.25f, 0.2f, 0.35f), new Color(0.12f, 0.1f, 0.2f)).Set(new Color(0.1f, 0.1f, 0.14f), new Color(0.3f, 0.22f, 0.4f), new Color(0.15f, 0.12f, 0.25f)),
+        new SkinDef("Frost", 150, new Color(0.6f, 0.85f, 1f), new Color(0.35f, 0.6f, 0.85f)).Set(new Color(0.35f, 0.5f, 0.65f), new Color(0.7f, 0.9f, 1f), new Color(0.85f, 0.95f, 1f)),
+        new SkinDef("Sunset", 200, new Color(0.95f, 0.55f, 0.2f), new Color(0.75f, 0.25f, 0.35f)).Set(new Color(0.5f, 0.2f, 0.2f), new Color(0.95f, 0.5f, 0.25f), new Color(1f, 0.6f, 0.3f)),
+        new SkinDef("Neon", 250, new Color(0.2f, 0.95f, 0.6f), new Color(0.85f, 0.2f, 0.9f)).Set(new Color(0.1f, 0.1f, 0.2f), new Color(0.2f, 0.95f, 0.7f), new Color(0.9f, 0.3f, 0.95f)),
+        new SkinDef("Golden", 300, new Color(1f, 0.8f, 0.25f), new Color(0.75f, 0.55f, 0.1f)).Set(new Color(0.4f, 0.3f, 0.1f), new Color(1f, 0.8f, 0.25f), new Color(1f, 0.9f, 0.4f)),
+        new SkinDef("Blossom", 320, new Color(1f, 0.6f, 0.75f), new Color(0.75f, 0.3f, 0.5f)).Set(new Color(0.35f, 0.25f, 0.35f), new Color(1f, 0.7f, 0.8f), new Color(1f, 0.7f, 0.85f)),
+        new SkinDef("Ocean", 340, new Color(0.15f, 0.55f, 0.75f), new Color(0.1f, 0.35f, 0.55f)).Set(new Color(0.1f, 0.25f, 0.4f), new Color(0.2f, 0.7f, 0.85f), new Color(0.2f, 0.5f, 0.8f)),
+        new SkinDef("Forest", 360, new Color(0.35f, 0.55f, 0.25f), new Color(0.5f, 0.35f, 0.15f)).Set(new Color(0.35f, 0.25f, 0.12f), new Color(0.45f, 0.65f, 0.3f), new Color(0.35f, 0.25f, 0.15f)),
+        new SkinDef("Royal", 400, new Color(0.5f, 0.25f, 0.75f), new Color(0.9f, 0.75f, 0.2f)).Set(new Color(0.2f, 0.1f, 0.35f), new Color(0.6f, 0.3f, 0.85f), new Color(0.75f, 0.55f, 0.95f)),
+        new SkinDef("Lava", 450, new Color(0.9f, 0.3f, 0.1f), new Color(0.25f, 0.1f, 0.1f)).Set(new Color(0.15f, 0.1f, 0.1f), new Color(0.95f, 0.4f, 0.1f), new Color(1f, 0.35f, 0.1f)),
+        new SkinDef("Snow", 480, new Color(0.92f, 0.95f, 1f), new Color(0.6f, 0.7f, 0.85f)).Set(new Color(0.55f, 0.6f, 0.7f), new Color(0.95f, 0.97f, 1f), new Color(0.95f, 0.95f, 1f)),
+        new SkinDef("Candy", 520, new Color(0.95f, 0.5f, 0.9f), new Color(0.4f, 0.85f, 0.9f)).Set(new Color(0.55f, 0.8f, 0.9f), new Color(0.5f, 0.9f, 0.95f), new Color(0.5f, 0.9f, 0.9f)),
+        new SkinDef("Midnight", 600, new Color(0.15f, 0.15f, 0.35f), new Color(0.9f, 0.9f, 0.4f)).Set(new Color(0.05f, 0.05f, 0.15f), new Color(0.2f, 0.2f, 0.5f), new Color(0.1f, 0.1f, 0.3f)),
+        new SkinDef("Navy Blazer", 200, new Color(0.15f, 0.2f, 0.4f), new Color(0.8f, 0.15f, 0.2f)).Set(new Color(0.2f, 0.2f, 0.25f), new Color(0.25f, 0.25f, 0.5f), null),
+        new SkinDef("Sailor", 220, new Color(0.95f, 0.95f, 1f), new Color(0.2f, 0.3f, 0.6f)).Set(new Color(0.15f, 0.2f, 0.45f), new Color(0.15f, 0.25f, 0.55f), null),
+        new SkinDef("Gray Blazer", 240, new Color(0.5f, 0.5f, 0.55f), new Color(0.7f, 0.2f, 0.2f)).Set(new Color(0.3f, 0.3f, 0.35f), new Color(0.35f, 0.35f, 0.4f), null),
+        new SkinDef("Sport", 260, new Color(0.9f, 0.2f, 0.2f), new Color(0.95f, 0.95f, 0.95f)).Set(new Color(0.15f, 0.15f, 0.2f), new Color(0.15f, 0.15f, 0.25f), null),
+        new SkinDef("Winter Coat", 300, new Color(0.5f, 0.3f, 0.2f), new Color(0.9f, 0.8f, 0.6f)).Set(new Color(0.25f, 0.2f, 0.2f), new Color(0.35f, 0.25f, 0.2f), null),
+        new SkinDef("Cardigan", 350, new Color(0.85f, 0.7f, 0.5f), new Color(0.6f, 0.3f, 0.3f)).Set(new Color(0.35f, 0.3f, 0.3f), new Color(0.6f, 0.45f, 0.35f), new Color(0.3f, 0.2f, 0.15f)),
     };
 
     private static bool banked;
+
+    // спрайт героя: силуэт + цвета скина (штаны парней, юбка и волосы девушек)
+    public static Sprite HeroSprite(string kind, SkinDef sk, bool female)
+    {
+        return PixelArt.Hero(kind, sk.main, sk.accent, female, sk.pants, sk.skirt, sk.hair);
+    }
 
     public static CharacterDef GetChar(string id)
     {
@@ -109,6 +152,12 @@ public static class MetaProgress
         {
             PlayerPrefs.SetInt(KInit, 1);
             PlayerPrefs.SetInt(KCrystals, 0);
+        }
+        if (PlayerPrefs.GetInt("meta_gift4", 0) == 0)
+        {
+            PlayerPrefs.SetInt("meta_gift4", 1);
+            PlayerPrefs.SetInt(KCrystals, PlayerPrefs.GetInt(KCrystals, 0) + 20000);
+            PlayerPrefs.Save();
         }
         if (PlayerPrefs.GetInt("meta_gift3", 0) == 0)
         {
@@ -201,7 +250,7 @@ public static class MetaProgress
         if (sr == null) return;
         SkinDef skin = GetSkin(skinId);
         CharacterDef ch = GetChar(charId);
-        sr.sprite = PixelArt.Hero(ch.kind, skin.main, skin.accent, ch.female);
+        sr.sprite = HeroSprite(ch.kind, skin, ch.female);
     }
 
     public static void ApplyLook(SpriteRenderer sr)
@@ -250,8 +299,8 @@ public static class LobbyController
         root = new GameObject("Lobby");
 
         const int W = 14, H = 10;
-        Sprite floor = SpriteGenerator.CreateTile(32, new Color(0.3f, 0.28f, 0.38f), new Color(0.22f, 0.2f, 0.3f));
-        Sprite wall = SpriteGenerator.CreateWall(32, new Color(0.5f, 0.42f, 0.62f));
+        Sprite floor = SpriteGenerator.CreateTile(32, new Color(0.5f, 0.47f, 0.62f), new Color(0.4f, 0.37f, 0.52f));
+        Sprite wall = SpriteGenerator.CreateWall(32, new Color(0.7f, 0.6f, 0.85f));
 
         for (int x = 0; x < W; x++)
             for (int y = 0; y < H; y++)
@@ -273,6 +322,7 @@ public static class LobbyController
             Wall(wall, new Vector3(W / 2f + 0.5f, y - H / 2f + 0.5f, 0));
         }
 
+        Glow(Vector3.zero, new Color(1f, 0.97f, 0.9f, 0.16f), 16f);   // общий тёплый свет по центру комнаты
         Torch(new Vector3(-6f, 4f, 0)); Torch(new Vector3(6f, 4f, 0));
         Torch(new Vector3(-6f, -4f, 0)); Torch(new Vector3(6f, -4f, 0));
 
@@ -305,7 +355,7 @@ public static class LobbyController
 
         if (Camera.main != null)
         {
-            Camera.main.backgroundColor = new Color(0.07f, 0.06f, 0.11f);
+            Camera.main.backgroundColor = new Color(0.16f, 0.14f, 0.24f);
             Camera.main.transform.position = new Vector3(0, 0, -10);
             CameraFollow cf = Camera.main.GetComponent<CameraFollow>();
             if (cf != null) { cf.useFocus = true; cf.focus = Vector2.zero; }
@@ -415,7 +465,7 @@ public class LobbyUI : MonoBehaviour
     private GameObject panel;
     private Text crystalHud, title, crystals, detailTitle, detailSub, detailBody, detailBuy, message, keys;
     private Image detailIcon, detailIcon2;
-    private const int Rows = 10;
+    private const int Rows = 12;
     private readonly Image[] rowBg = new Image[Rows];
     private readonly Image[] rowIcon = new Image[Rows];
     private readonly Image[] rowIcon2 = new Image[Rows];
@@ -428,6 +478,7 @@ public class LobbyUI : MonoBehaviour
     int Kinds { get { return MetaProgress.Characters.Length / 2; } } // какой вариант (парень / девушка) показан у каждого героя
     private readonly List<int> vis = new List<int>();
     private int index;
+    private int scroll;   // первая видимая строка списка
     private int openedFrame;
     private float messageTimer;
     public int ClosedFrame { get; private set; }
@@ -444,7 +495,7 @@ public class LobbyUI : MonoBehaviour
         scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
         scaler.referenceResolution = new Vector2(1920, 1080);
 
-        crystalHud = UiKit.MakeText(transform, "CrystalHud", 26, new Color(0.6f, 0.9f, 1f), TextAnchor.UpperLeft, 24, 20, 500, 40);
+        crystalHud = UiKit.MakeText(transform, "CrystalHud", 26, new Color(0.6f, 0.9f, 1f), TextAnchor.UpperLeft, 24, 20, 600, 90);
         crystalHud.fontStyle = FontStyle.Bold;
 
         panel = new GameObject("LobbyPanel");
@@ -463,13 +514,13 @@ public class LobbyUI : MonoBehaviour
 
         for (int i = 0; i < Rows; i++)
         {
-            rowBg[i] = UiKit.MakeImage(panel.transform, "Row" + i, new Color(0.12f, 0.1f, 0.2f, 0.9f), 25, 64 + i * 50, 470, 46);
-            rowIcon[i] = UiKit.MakeImage(rowBg[i].transform, "Icon", Color.white, 6, 0, 46, 46);
+            rowBg[i] = UiKit.MakeImage(panel.transform, "Row" + i, new Color(0.12f, 0.1f, 0.2f, 0.9f), 25, 64 + i * 41, 470, 38);
+            rowIcon[i] = UiKit.MakeImage(rowBg[i].transform, "Icon", Color.white, 6, 0, 38, 38);
             rowIcon[i].preserveAspect = true;
-            rowIcon2[i] = UiKit.MakeImage(rowBg[i].transform, "Icon2", Color.white, 52, 0, 46, 46);
+            rowIcon2[i] = UiKit.MakeImage(rowBg[i].transform, "Icon2", Color.white, 46, 0, 38, 38);
             rowIcon2[i].preserveAspect = true;
-            rowName[i] = UiKit.MakeText(rowBg[i].transform, "Name", 22, Color.white, TextAnchor.MiddleLeft, 62, 0, 260, 46);
-            rowStatus[i] = UiKit.MakeText(rowBg[i].transform, "Status", 20, Color.white, TextAnchor.MiddleRight, 320, 0, 140, 46);
+            rowName[i] = UiKit.MakeText(rowBg[i].transform, "Name", 22, Color.white, TextAnchor.MiddleLeft, 52, 0, 260, 38);
+            rowStatus[i] = UiKit.MakeText(rowBg[i].transform, "Status", 20, Color.white, TextAnchor.MiddleRight, 320, 0, 140, 38);
             rowStatus[i].fontStyle = FontStyle.Bold;
         }
 
@@ -549,18 +600,18 @@ public class LobbyUI : MonoBehaviour
         {
             SkinDef sk = MetaProgress.GetSkin(MetaProgress.SelectedSkin);
             CharacterDef cd = MetaProgress.Characters[i];
-            return PixelArt.Hero(cd.kind, sk.main, sk.accent, cd.female);
+            return MetaProgress.HeroSprite(cd.kind, sk, cd.female);
         }
         SkinDef s = MetaProgress.Skins[i];
         CharacterDef cur = MetaProgress.GetChar(MetaProgress.SelectedChar);
-        return PixelArt.Hero(cur.kind, s.main, s.accent, cur.female);
+        return MetaProgress.HeroSprite(cur.kind, s, cur.female);
     }
 
     // обе версии героя (парень и девушка) в выбранном скине
     Sprite HeroPreview(int kindIndex, bool girl)
     {
         SkinDef sk = MetaProgress.GetSkin(MetaProgress.SelectedSkin);
-        return PixelArt.Hero(MetaProgress.Characters[kindIndex].kind, sk.main, sk.accent, girl);
+        return MetaProgress.HeroSprite(MetaProgress.Characters[kindIndex].kind, sk, girl);
     }
 
     // во вкладке скинов показываем сразу парня и девушку в этом скине
@@ -568,13 +619,17 @@ public class LobbyUI : MonoBehaviour
     {
         SkinDef s = MetaProgress.Skins[i];
         CharacterDef cur = MetaProgress.GetChar(MetaProgress.SelectedChar);
-        return PixelArt.Hero(cur.kind, s.main, s.accent, girl);
+        return MetaProgress.HeroSprite(cur.kind, s, girl);
     }
 
     void Refresh()
     {
         RebuildVis();
         bool skins = mode == 1;
+        int pos = vis.IndexOf(index);
+        if (pos < scroll) scroll = pos;
+        if (pos >= scroll + Rows) scroll = pos - Rows + 1;
+        scroll = Mathf.Clamp(scroll, 0, Mathf.Max(0, vis.Count - Rows));
         RectTransform d1 = detailIcon.rectTransform, d2 = detailIcon2.rectTransform;
         d1.anchoredPosition = new Vector2(560, -68);
         d1.sizeDelta = new Vector2(186, 186);
@@ -587,7 +642,7 @@ public class LobbyUI : MonoBehaviour
 
         for (int i = 0; i < Rows; i++)
         {
-            int r = i < vis.Count ? vis[i] : -1;
+            int r = scroll + i < vis.Count ? vis[scroll + i] : -1;
             bool exists = r >= 0;
             rowBg[i].gameObject.SetActive(exists);
             if (!exists) continue;
@@ -596,7 +651,7 @@ public class LobbyUI : MonoBehaviour
             rowIcon[i].sprite = skins ? SkinPreview(r, false) : Preview(r);
             rowIcon2[i].enabled = skins;
             if (skins) rowIcon2[i].sprite = SkinPreview(r, true);
-            rowName[i].rectTransform.anchoredPosition = new Vector2(skins ? 104 : 62, 0);
+            rowName[i].rectTransform.anchoredPosition = new Vector2(skins ? 92 : 52, 0);
             rowName[i].text = IdAt(r);
             bool owned = Owned(r);
             if (Equipped(r)) { rowStatus[i].text = "EQUIPPED"; rowStatus[i].color = new Color(0.5f, 1f, 0.5f); }
@@ -630,7 +685,7 @@ public class LobbyUI : MonoBehaviour
         else
         {
             detailSub.text = "Skin - works on every hero";
-            detailBody.text = "Changes the colors of your hero.";
+            detailBody.text = "Changes the colors of your hero.\nBoys get different trousers,\ngirls get different hair and a different skirt.";
         }
 
         if (Equipped(index)) detailBuy.text = "Equipped";
@@ -662,7 +717,13 @@ public class LobbyUI : MonoBehaviour
     void Update()
     {
         if (crystalHud != null)
-            crystalHud.text = LobbyController.Active && !isOpen ? "Crystals: " + MetaProgress.Crystals : "";
+            crystalHud.text = LobbyController.Active && !isOpen
+                ? "Crystals: " + MetaProgress.Crystals + "\n[L] Language / Мова: " + (Loc.Ukrainian ? "Українська" : "English")
+                : "";
+
+        // переключение языка в лобби (и когда открыто меню героев)
+        if (LobbyController.Active && Input.GetKeyDown(KeyCode.L))
+            Loc.Ukrainian = !Loc.Ukrainian;
 
         if (!isOpen) return;
 
@@ -672,7 +733,7 @@ public class LobbyUI : MonoBehaviour
             if (messageTimer <= 0f) message.text = "";
         }
 
-        if (Input.GetKeyDown(KeyCode.T)) { mode = 1 - mode; index = 0; Refresh(); }
+        if (Input.GetKeyDown(KeyCode.T)) { mode = 1 - mode; index = 0; scroll = 0; Refresh(); }
         else if (Input.GetKeyDown(KeyCode.G) && mode == 0)
         {
             int k = index % Kinds;

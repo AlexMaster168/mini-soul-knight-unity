@@ -41,6 +41,7 @@ public class SceneSetup : MonoBehaviour
         player.AddComponent<PlayerAbilities>();
         player.AddComponent<PlayerUpgrades>();
         player.AddComponent<PlayerRobots>();
+        player.AddComponent<PlayerOverheadHUD>();
         player.transform.localScale = Vector3.one * 1.2f;
 
         GameObject shadow = new GameObject("Shadow");
@@ -80,6 +81,7 @@ public class SceneSetup : MonoBehaviour
         CreateManager("WeaponInfoUI", typeof(WeaponInfoUI));
         CreateManager("WeaponShopUI", typeof(WeaponShopUI));
         CreateManager("LobbyUI", typeof(LobbyUI));
+        CreateManager("AbilityMenuUI", typeof(AbilityMenuUI));
         CreateManager("Localizer", typeof(Localizer));
     }
 

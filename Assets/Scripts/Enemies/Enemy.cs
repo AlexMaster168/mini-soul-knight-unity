@@ -511,9 +511,26 @@ public class Enemy : MonoBehaviour
         }
     }
 
+    // Суммарный урон способностей по боссу ограничен 40% его здоровья, чтобы одна кнопка не убивала босса
+    private int abilityDamageTaken;
+    [HideInInspector] public float damageTakenMult = 1f;   // <1 - босс под щитом
+
+    public void TakeAbilityDamage(int dmg, Vector2 hitDir = default(Vector2))
+    {
+        if (GetComponent<Boss>() != null)
+        {
+            int left = Mathf.RoundToInt(maxHealth * 0.4f) - abilityDamageTaken;
+            if (left <= 0) return;
+            dmg = Mathf.Min(dmg, left);
+            abilityDamageTaken += dmg;
+        }
+        TakeDamage(dmg, hitDir);
+    }
+
     public void TakeDamage(int dmg, Vector2 hitDir = default(Vector2))
     {
         if (spawnTimer > 0f) return;
+        if (damageTakenMult < 1f) dmg = Mathf.Max(1, Mathf.RoundToInt(dmg * damageTakenMult));
         if (ability != null) dmg = ability.ModifyDamage(dmg, hitDir);
 
         currentHealth -= dmg;
@@ -593,6 +610,7 @@ public class Enemy : MonoBehaviour
             ScoreManager.Instance.AddScore(100);
 
         bool isBoss = GetComponent<Boss>() != null;
+        if (isBoss) GetComponent<Boss>().KillFollowers();
 
         if (ability != null)
             ability.OnDeath();
@@ -637,20 +655,25 @@ public class Enemy : MonoBehaviour
 
     void DropLoot()
     {
-        float roll = Random.Range(0f, 1f);
-
-        if (enemyType == "Tank" || enemyType == "DarkKnight")
+        // 1.5 броска: один всегда, второй с шансом 50%
+        int rolls = 1 + (Random.value < DropRolls - 1f ? 1 : 0);
+        for (int i = 0; i < rolls; i++)
         {
-            if (roll < 0.4f) SpawnDrop("health");
-            else if (roll < 0.55f) SpawnDrop("energy");
-            else if (roll < 0.65f) SpawnDrop("weapon");
+            float roll = Random.Range(0f, 1f);
+
+            if (enemyType == "Tank" || enemyType == "DarkKnight")
+            {
+                if (roll < 0.4f) SpawnDrop("health");
+                else if (roll < 0.55f) SpawnDrop("energy");
+                else if (roll < 0.65f) SpawnDrop("weapon");
+            }
+            else if (roll < 0.25f)
+                SpawnDrop("health");
+            else if (roll < 0.45f)
+                SpawnDrop("energy");
+            else if (roll < 0.5f)
+                SpawnDrop("weapon");
         }
-        else if (roll < 0.25f)
-            SpawnDrop("health");
-        else if (roll < 0.45f)
-            SpawnDrop("energy");
-        else if (roll < 0.5f)
-            SpawnDrop("weapon");
 
         SpawnGold();
     }
@@ -683,7 +706,8 @@ public class Enemy : MonoBehaviour
         }
     }
 
-    const int GoldMultiplier = 3; // множитель выпадающего золота
+    const float GoldMultiplier = 4.5f; // множитель выпадающего золота (прежние x3, теперь x1.5 сверху)
+    const float DropRolls = 1.5f;      // среднее число бросков на предметы (аптечки, энергия, оружие)
 
     void SpawnGold()
     {
@@ -723,7 +747,7 @@ public class Enemy : MonoBehaviour
             obj.transform.localScale = Vector3.one * 0.8f;
             obj.AddComponent<BoxCollider2D>().isTrigger = true;
             GoldPickup gp = obj.AddComponent<GoldPickup>();
-            gp.goldValue = Mathf.Max(1, goldTotal / coinCount) * GoldMultiplier;
+            gp.goldValue = Mathf.Max(1, Mathf.FloorToInt(Mathf.Max(1, goldTotal / coinCount) * GoldMultiplier + 0.5f));
         }
     }
 

@@ -26,7 +26,7 @@ public static class AbilityCatalog
         new AbilityDef("Meteor Storm", "METEORS", 700, 45f, new Color(1f, 0.5f, 0.15f),
             "Calls down 16 meteors over 3 seconds on the enemies' heads. Each blast deals 260 damage in a wide area."),
         new AbilityDef("Annihilation", "ANNIHILATE", 800, 60f, new Color(1f, 0.15f, 0.2f),
-            "Wipes out EVERY enemy in the room. Bosses lose 30% of their max HP."),
+            "Wipes out every enemy of the current wave. Bosses lose 30% of their max HP."),
         new AbilityDef("Ascension", "ASCEND", 900, 90f, new Color(1f, 0.85f, 0.3f),
             "10 seconds of godhood: invulnerable, x3 damage, free shots."),
         new AbilityDef("Nova", "NOVA", 300, 15f, new Color(0.4f, 0.8f, 1f),
@@ -60,6 +60,18 @@ public class PlayerAbilities : MonoBehaviour
 
     public List<string> owned = new List<string>();
     private readonly Dictionary<string, float> readyAt = new Dictionary<string, float>();
+    private readonly Dictionary<string, int> usedInRoom = new Dictionary<string, int>();
+
+    private int lastRoom = int.MinValue;
+
+    int RoomId { get { return DungeonGenerator.Instance != null ? DungeonGenerator.Instance.CurrentRoomId : -1; } }
+
+    // способность уже применена в этой комнате (каждую можно один раз за комнату)
+    public bool UsedHere(string id)
+    {
+        int r;
+        return usedInRoom.TryGetValue(id, out r) && r == RoomId;
+    }
 
     void Awake()
     {
@@ -91,6 +103,14 @@ public class PlayerAbilities : MonoBehaviour
         if (WeaponShopUI.Instance != null && WeaponShopUI.Instance.IsOpen()) return;
         if (DungeonGenerator.Instance != null && DungeonGenerator.Instance.IsTransitioning) return;
 
+        // в новой комнате все способности перезаряжены
+        int room = RoomId;
+        if (room != lastRoom)
+        {
+            lastRoom = room;
+            readyAt.Clear();
+        }
+
         for (int i = 0; i < owned.Count && i < Keys.Length; i++)
             if (Input.GetKeyDown(Keys[i])) Use(owned[i], pc);
     }
@@ -100,6 +120,7 @@ public class PlayerAbilities : MonoBehaviour
         if (Remaining(id) > 0f) return;
         AbilityDef def = AbilityCatalog.Get(id);
         if (def == null) return;
+        if (UsedHere(id)) { HudHint.Flash("Already used in this room", 1.5f); return; }
 
         Vector2 pos = pc.transform.position;
         switch (id)
@@ -143,6 +164,7 @@ public class PlayerAbilities : MonoBehaviour
         }
 
         readyAt[id] = Time.time + def.cooldown;
+        usedInRoom[id] = RoomId;
         if (PostProcessEffect.Instance != null)
             PostProcessEffect.Instance.TriggerScreenShake(0.1f, 0.15f);
     }
@@ -183,14 +205,15 @@ public class PlayerAbilities : MonoBehaviour
         if (PostProcessEffect.Instance != null) PostProcessEffect.Instance.TriggerScreenShake(0.3f, 0.6f);
         ClearEnemyBullets();
 
-        for (int pass = 0; pass < 3; pass++)
+        // убирает только текущую волну: врагов, которые живы сейчас (следующие волны появятся как обычно)
+        for (int pass = 0; pass < 1; pass++)
         {
             foreach (Enemy e in FindObjectsByType<Enemy>(FindObjectsSortMode.None))
             {
                 if (e == null) continue;
                 if (e.GetComponent<Boss>() != null)
                 {
-                    if (pass == 0) e.TakeDamage(Mathf.RoundToInt(e.maxHealth * 0.3f));
+                    if (pass == 0) e.TakeAbilityDamage(Mathf.RoundToInt(e.maxHealth * 0.3f));
                 }
                 else
                     e.TakeDamage(9999999);
@@ -212,7 +235,7 @@ public class PlayerAbilities : MonoBehaviour
         {
             if (!h.CompareTag("Enemy")) continue;
             Enemy e = h.GetComponent<Enemy>();
-            if (e != null) e.TakeDamage(150, ((Vector2)e.transform.position - pos).normalized);
+            if (e != null) e.TakeAbilityDamage(150, ((Vector2)e.transform.position - pos).normalized);
         }
         ClearEnemyBullets();
     }
