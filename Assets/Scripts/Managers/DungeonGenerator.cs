@@ -500,8 +500,6 @@ public class DungeonGenerator : MonoBehaviour
         PlayerController player = PlayerController.Instance;
         if (player == null) return;
 
-        HandleDoorInteraction(player);
-
         // подсказка у запертой двери босса
         if (bossLocked && currentRoom.cleared && IsAdjacentToBoss(currentRoom))
             HudHint.Show("Clear all rooms on this floor to open the boss door");
@@ -601,41 +599,6 @@ public class DungeonGenerator : MonoBehaviour
     }
 
     // ================= ЗАЧИСТКА, ЛУТ, ПОРТАЛ =================
-
-    // Двери между комнатами открываются клавишей E рядом с ними
-    void HandleDoorInteraction(PlayerController player)
-    {
-        RoomDoor nearest = null;
-        float best = 2.6f;
-        foreach (var kvp in rooms)
-            foreach (RoomDoor d in kvp.Value.doors)
-            {
-                if (d == null || !d.IsManualClosed) continue;
-                float dist = Vector2.Distance(d.transform.position, player.transform.position);
-                if (dist < best) { best = dist; nearest = d; }
-            }
-        if (nearest == null) return;
-
-        if (nearest.IsLocked)
-        {
-            HudHint.Show("Clear all rooms on this floor to open the boss door");
-            return;
-        }
-
-        HudHint.Show("[E] Open the door");
-        bool uiOpen = (ShopUI.Instance != null && ShopUI.Instance.IsOpen())
-                      || (WeaponShopUI.Instance != null && WeaponShopUI.Instance.IsOpen())
-                      || (AbilityMenuUI.Instance != null && AbilityMenuUI.Instance.IsOpen());
-        if (!uiOpen && Input.GetKeyDown(KeyCode.E))
-        {
-            // открываем эту дверь и парную с другой стороны прохода
-            Vector3 at = nearest.transform.position;
-            foreach (var kvp in rooms)
-                foreach (RoomDoor d in kvp.Value.doors)
-                    if (d != null && !d.IsLocked && Vector2.Distance(d.transform.position, at) < 3.2f)
-                        d.OpenManual();
-        }
-    }
 
     // Босса не обойти: пока не зачищены все остальные комнаты этажа, двери к нему заперты
     private bool bossLocked;
